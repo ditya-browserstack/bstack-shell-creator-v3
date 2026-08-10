@@ -1,0 +1,21 @@
+{
+  "product": "LCA (Low Code Automation)",
+  "designSystem": "designstack",
+  "repoPath": "~/projects/lcnc-workspace",
+  "storybookUrl": "http://localhost:6006",
+  "liveUrl": "https://low-code.browserstack.com/",
+  "chrome": {
+    "topbar": "#lcnc-bstack-header",
+    "sidebar": "nav.fixed.inset-y-0",
+    "activeNav": "Tests",
+    "contentSlot": ".lca-main-slot"
+  },
+  "vocabulary": ["test", "recorder", "run", "build", "step", "module"],
+  "shellSync": {
+    "ticketPrefix": "LCNC",
+    "repos": ["browserstack/lcnc-backend"],
+    "sharedRepos": ["browserstack/frontend"],
+    "productSignals": ["lcnc", "lca", "low-code"],
+    "dropBranchPatterns": ["main", "master"]
+  }
+}

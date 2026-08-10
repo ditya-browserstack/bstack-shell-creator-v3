@@ -1,0 +1,174 @@
+{
+  "$comment": "SHARED ORG CORE. Which DesignStack story becomes which reusable block, for EVERY BrowserStack product (all render from @browserstack/design-stack). Story IDs verified against a running Storybook (584 entries, design-stack 9.8.0) on 2026-08-05. Run `capture-storybook.mjs --core --dry-run` after any design-stack bump to catch IDs that no longer exist. Product-specific compositions are NOT here — they are captured per product into Tier 6 during SETUP.",
+  "storybookUrl": "http://localhost:6006",
+  "defaultRoot": "#storybook-root",
+  "blocks": [
+    {
+      "tier": 1,
+      "block": "sidebar",
+      "story": "application-components-sidebarnavigation--sidebarwith-brand-image",
+      "minHeight": 640,
+      "comment": "SIDEBAR. App chrome — present on every product screen. Mark the current section active. Never restyle. NB the --primary story captures as an empty shell (content is state-driven and does not survive a static capture), so this uses the brand-image story instead."
+    },
+    {
+      "tier": 1,
+      "block": "page-header",
+      "story": "application-components-pageheadings--actions-with-buttons",
+      "comment": "PAGE HEADER. Title on the left, actions right-aligned. Use for every product page."
+    },
+    {
+      "tier": 1,
+      "block": "help-banner",
+      "story": "application-components-banner--scoped-dismiss-label",
+      "comment": "DISMISSIBLE HELP BANNER. Sits above page content. Optional. NB the --primary story renders its post-dismissal confirmation by default, which is why this uses the scoped-dismiss story instead."
+    },
+
+    {
+      "tier": 2,
+      "block": "table-condensed",
+      "story": "application-components-table--condensed-table",
+      "comment": "TABLE, CONDENSED. Dense rows — the default for list-heavy product screens. Prefer this over the roomier Primary table.",
+      "states": [
+        { "name": "default" },
+        { "name": "row-hovered", "do": "hover", "on": "tbody tr:nth-child(2)" }
+      ]
+    },
+    {
+      "tier": 2,
+      "block": "table-sortable",
+      "story": "application-components-table--sortable-table",
+      "comment": "TABLE HEADER WITH SORTING. Use when a column is sorted. Shows the sort affordance in the header cell."
+    },
+    {
+      "tier": 2,
+      "block": "table-selectable",
+      "story": "application-components-table--selectable-table",
+      "comment": "CHECKBOX COLUMN + SELECT-ALL HEADER CELL. Use for any bulk-action table.",
+      "states": [
+        { "name": "default" },
+        { "name": "row-selected", "do": "click", "on": "tbody tr:nth-child(2) input[type=checkbox]" },
+        { "name": "select-all", "do": "click", "on": "thead input[type=checkbox]" }
+      ]
+    },
+    {
+      "tier": 2,
+      "block": "table-loading",
+      "story": "application-components-table--loading-table",
+      "comment": "TABLE LOADING STATE. Real skeleton rows. Use this instead of inventing a spinner."
+    },
+    {
+      "tier": 2,
+      "block": "tag-pill",
+      "story": "application-components-tag--primary",
+      "comment": "TAG PILL. For click-to-filter behaviour keep the pill clickable — do not wrap it in a Tooltip, that swallows the click."
+    },
+    {
+      "tier": 2,
+      "block": "tag-dismissible",
+      "story": "application-components-tag--with-dismiss",
+      "comment": "TAG PILL, DISMISSIBLE. Use for applied-filter chips."
+    },
+    {
+      "tier": 2,
+      "block": "status-badge",
+      "story": "application-components-badge--with-icon",
+      "comment": "STATUS BADGE. Use for run/test/session status. Icon variant reads faster in a dense table."
+    },
+    {
+      "tier": 2,
+      "block": "row-action-menu",
+      "story": "application-components-dropdown--meatball-dropdown",
+      "comment": "ROW ACTION MENU (meatball). Captured OPEN — the open menu is what never gets guessed right.",
+      "states": [
+        { "name": "closed" },
+        { "name": "open", "do": "click", "on": "button" }
+      ]
+    },
+    {
+      "tier": 2,
+      "block": "pagination",
+      "story": "application-components-pagination--primary",
+      "comment": "PAGINATION. Sits below the table."
+    },
+
+    {
+      "tier": 3,
+      "block": "switch",
+      "story": "application-components-switch--with-label-desc",
+      "comment": "SWITCH with label + description. Use for a single on/off setting or feature flag (e.g. 'Block all permissions'). The label/description pattern is what makes a flag legible to a non-technical user.",
+      "states": [
+        { "name": "default" },
+        { "name": "toggled", "do": "click", "on": "button[role=switch]" }
+      ]
+    },
+    {
+      "tier": 3,
+      "block": "settings-row-switch",
+      "story": "application-components-actionpanel--action-panel-with-switch",
+      "comment": "SETTINGS PANEL ROW with a switch on the right. Use to build a list of toggleable settings/flags in a config panel — the Advanced Config / Browser Flags pattern."
+    },
+    {
+      "tier": 3,
+      "block": "checkbox",
+      "story": "application-components-checkbox--checkbox-primary",
+      "comment": "CHECKBOX with label. Use for multi-select options where more than one can be on at once.",
+      "states": [
+        { "name": "default" },
+        { "name": "checked", "do": "click", "on": "input[type=checkbox]" }
+      ]
+    },
+    {
+      "tier": 3,
+      "block": "radio-group",
+      "story": "application-components-radiogroup--list-with-description",
+      "comment": "RADIO GROUP with descriptions. Use for one-of-many choices where each option needs a line of explanation."
+    },
+    {
+      "tier": 3,
+      "block": "input-field",
+      "story": "application-components-inputfield--primary",
+      "comment": "TEXT INPUT with label. The default single-line field."
+    },
+    {
+      "tier": 3,
+      "block": "select-combobox",
+      "story": "application-components-combobox--primary",
+      "comment": "SELECT / COMBOBOX. Use for a single choice from a longer list. Captured open so the option list markup is real.",
+      "states": [
+        { "name": "closed" },
+        { "name": "open", "do": "click", "on": "button" }
+      ]
+    },
+
+    {
+      "tier": 4,
+      "block": "alert-with-actions",
+      "story": "application-components-alert--with-actions",
+      "comment": "INLINE ALERT with action buttons. Use for a warning that needs the user to do something — e.g. a permission conflict where the fix is one click ('Turn off Block all permissions'). This is the right component for an inline conflict warning; do NOT recolour a banner."
+    },
+    {
+      "tier": 4,
+      "block": "alert-with-description",
+      "story": "application-components-alert--with-description",
+      "comment": "INLINE ALERT with a description paragraph. Use for a non-actionable notice or explanation."
+    },
+    {
+      "tier": 4,
+      "block": "empty-state",
+      "story": "application-components-emptystate--primary",
+      "comment": "EMPTY STATE. Use when a list/panel has no items yet."
+    },
+    {
+      "tier": 4,
+      "block": "modal-confirm",
+      "story": "application-components-modal--centered-with-single-action",
+      "comment": "CENTERED MODAL with a primary action. Use for a confirm/decision dialog — e.g. 'Turn off Block all permissions for this test?'. Captured with the modal open."
+    },
+    {
+      "tier": 3,
+      "block": "buttons",
+      "story": "application-components-button--all-possible-button-combinations",
+      "comment": "BUTTONS — every variant/size. Extract the primary (brand) and secondary (neutral) button markup from here; do not author button classes by hand."
+    }
+  ]
+}

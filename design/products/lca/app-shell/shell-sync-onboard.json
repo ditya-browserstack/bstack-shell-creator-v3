@@ -1,0 +1,22 @@
+{
+  "slug": "lca",
+  "product_name": "LCA (Low Code Automation)",
+  "product_url": "https://low-code.browserstack.com/",
+  "ticket_prefix": "LCNC",
+  "repos": [
+    "browserstack/lcnc-backend"
+  ],
+  "shared_repos": [
+    "browserstack/frontend"
+  ],
+  "product_signals": [
+    "lcnc",
+    "lca",
+    "low-code"
+  ],
+  "drop_branch_patterns": [
+    "main",
+    "master"
+  ],
+  "shell_source": "/Users/aditya.sin@browserstack.com/projects/lcnc-workspace/lcnc-backend/workspace/skills/bs-design-from-tb/products/lca/app-shell/shell-scaffold.html"
+}

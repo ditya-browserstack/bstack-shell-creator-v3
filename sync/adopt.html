@@ -1,0 +1,1082 @@
+<meta charset="utf-8">
+<title>shell-sync &mdash; adopting it for your product</title>
+
+<style>
+  /* ---- tokens: light is the base ------------------------------------- */
+  :root {
+    --bg:          #F5F7F9;
+    --surface:     #FFFFFF;
+    --surface-2:   #EAEFF3;
+    --border:      #D8DEE5;
+    --border-firm: #B6C0CB;
+    --ink:         #131A21;
+    --ink-2:       #48545F;
+    --ink-3:       #6B7885;
+    --accent:      #1B5E8C;
+    --accent-soft: #E1EBF3;
+    --present:     #2E7D5B;
+    --missing:     #B4530A;
+    --uncertain:   #6353A0;
+    --shadow:      0 1px 2px rgba(19, 26, 33, .06), 0 4px 12px rgba(19, 26, 33, .04);
+
+    --font-display: "Iowan Old Style", "Hoefler Text", Palatino, "Palatino Linotype", Georgia, ui-serif, serif;
+    --font-body:    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-mono:    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  /* dark follows the OS, but yields to an explicit light toggle */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:          #0E1216;
+      --surface:     #161C22;
+      --surface-2:   #1E262E;
+      --border:      #2A333D;
+      --border-firm: #3D4954;
+      --ink:         #E7ECF1;
+      --ink-2:       #AEBAC5;
+      --ink-3:       #8794A0;
+      --accent:      #6FB2DE;
+      --accent-soft: #17262F;
+      --present:     #63BC90;
+      --missing:     #E0913F;
+      --uncertain:   #A292DC;
+      --shadow:      0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .28);
+    }
+  }
+
+  /* explicit dark always wins */
+  :root[data-theme="dark"] {
+    --bg:          #0E1216;
+    --surface:     #161C22;
+    --surface-2:   #1E262E;
+    --border:      #2A333D;
+    --border-firm: #3D4954;
+    --ink:         #E7ECF1;
+    --ink-2:       #AEBAC5;
+    --ink-3:       #8794A0;
+    --accent:      #6FB2DE;
+    --accent-soft: #17262F;
+    --present:     #63BC90;
+    --missing:     #E0913F;
+    --uncertain:   #A292DC;
+    --shadow:      0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .28);
+  }
+
+  /* ---- base ----------------------------------------------------------- */
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* every direct block in a prose flow gets the reading measure;
+     figures and full-bleed blocks opt out via .wide */
+  .prose { max-width: 68ch; }
+
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+
+  h1 {
+    font-size: clamp(2.1rem, 4.6vw, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -.022em;
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 2.4vw, 1.72rem);
+    line-height: 1.2;
+    letter-spacing: -.014em;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.06rem;
+    line-height: 1.3;
+    letter-spacing: -.006em;
+    font-weight: 600;
+  }
+
+  p { margin: 0; }
+  strong { font-weight: 650; }
+
+  code, .mono {
+    font-family: var(--font-mono);
+    font-size: .855em;
+    font-variant-ligatures: none;
+  }
+
+  code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: .08em .32em;
+    white-space: nowrap;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .688rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ---- masthead ------------------------------------------------------- */
+  header.masthead {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .masthead .lede {
+    font-size: 1.16rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 60ch;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    padding-top: 6px;
+  }
+
+  .fact { display: flex; flex-direction: column; gap: 3px; }
+  .fact .k {
+    font-family: var(--font-mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .fact .v { font-family: var(--font-mono); font-size: .85rem; color: var(--ink); }
+
+  /* ---- sections ------------------------------------------------------- */
+  section { padding-top: 60px; display: flex; flex-direction: column; gap: 20px; }
+  .section-head { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---- figures -------------------------------------------------------- */
+  figure {
+    margin: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .figframe {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    padding: 22px 20px;
+    overflow-x: auto;
+  }
+
+  .figframe svg { display: block; width: 100%; height: auto; min-width: 540px; }
+
+  figcaption {
+    font-size: .875rem;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 74ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 620; }
+
+  /* svg-local conventions */
+  .s-box  { fill: var(--surface-2); stroke: var(--border-firm); stroke-width: 1.2; }
+  .s-gate { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-dasharray: 6 4; }
+  .s-ext  { fill: none; stroke: var(--border-firm); stroke-width: 1.2; }
+  .s-line { stroke: currentColor; stroke-width: 1.3; fill: none; }
+  .s-line-soft { stroke: var(--border-firm); stroke-width: 1.2; fill: none; }
+  .s-fail { stroke: var(--missing); stroke-width: 1.3; fill: none; stroke-dasharray: 5 3; }
+  .s-t    { fill: currentColor; font-family: var(--font-body); font-size: 13px; }
+  .s-t-b  { fill: currentColor; font-family: var(--font-body); font-size: 13px; font-weight: 620; }
+  .s-m    { fill: var(--ink-3); font-family: var(--font-mono); font-size: 11px; }
+  .s-n    { fill: var(--accent); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+  .s-fail-t { fill: var(--missing); font-family: var(--font-mono); font-size: 11px; }
+
+  /* ---- stage list ----------------------------------------------------- */
+  ol.stages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    counter-reset: stage;
+  }
+
+  ol.stages > li {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0 16px;
+    padding: 18px 0;
+    border-top: 1px solid var(--border);
+  }
+  ol.stages > li:last-child { border-bottom: 1px solid var(--border); }
+
+  ol.stages > li::before {
+    counter-increment: stage;
+    content: counter(stage, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    color: var(--accent);
+    padding-top: .18rem;
+  }
+
+  .stage-body { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .stage-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .stage-body p { color: var(--ink-2); font-size: .945rem; max-width: 66ch; }
+
+  li.is-gate { background: var(--accent-soft); }
+  li.is-gate .stage-body p { color: var(--ink); }
+
+  /* ---- chips ---------------------------------------------------------- */
+  .chip {
+    font-family: var(--font-mono);
+    font-size: .655rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    padding: .17em .48em;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .chip.auto  { color: var(--ink-3); }
+  .chip.agent { color: var(--accent); }
+  .chip.human { color: var(--ink); border-style: dashed; border-width: 1.5px; }
+
+  /* ---- verdict cards -------------------------------------------------- */
+  .verdicts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+  }
+
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--vc);
+    border-radius: 5px;
+    padding: 15px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    box-shadow: var(--shadow);
+  }
+  .verdict .vname {
+    font-family: var(--font-mono);
+    font-size: .76rem;
+    letter-spacing: .07em;
+    color: var(--vc);
+    font-weight: 600;
+  }
+  .verdict p { font-size: .89rem; line-height: 1.5; color: var(--ink-2); }
+  .v-present   { --vc: var(--present); }
+  .v-missing   { --vc: var(--missing); }
+  .v-uncertain { --vc: var(--uncertain); }
+  /* the state that hands back to a person is marked by form, not a fourth hue */
+  .v-needs     { --vc: var(--ink); border-top-style: dashed; }
+
+  /* ---- table ---------------------------------------------------------- */
+  .tablewrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: .9rem; }
+
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+
+  th {
+    font-family: var(--font-mono);
+    font-size: .66rem;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+
+  td.trigger { font-family: var(--font-mono); font-size: .8rem; color: var(--ink); white-space: nowrap; }
+  td.result { color: var(--ink-2); }
+
+  /* ---- callout -------------------------------------------------------- */
+  .callout {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--missing);
+    background: var(--surface);
+    border-radius: 0 5px 5px 0;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 72ch;
+  }
+  .callout .clabel {
+    font-family: var(--font-mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--missing);
+  }
+  .callout p { font-size: .93rem; color: var(--ink-2); }
+
+  /* ---- tree ----------------------------------------------------------- */
+  pre.tree {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: .8rem;
+    line-height: 1.75;
+    color: var(--ink-2);
+    box-shadow: var(--shadow);
+  }
+  pre.tree b { color: var(--ink); font-weight: 600; }
+  pre.tree i { color: var(--ink-3); font-style: normal; }
+
+  footer {
+    margin-top: 68px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    font-size: .875rem;
+    color: var(--ink-3);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* ---- print / PDF ---------------------------------------------------- */
+  /* This page gets shared as a PDF, so printing is a real output, not an
+     afterthought. Force the light palette (a dark-mode export wastes ink and
+     reads badly), stop figures and tables splitting across pages, and let the
+     wide diagrams shrink to the page instead of being clipped at the scroll
+     boundary they use on screen. */
+  @media print {
+    /* Must out-specify the dark-mode rule, which uses :root:not([data-theme="light"])
+       and therefore beats a bare :root regardless of source order. Without this, a
+       reader on a dark-mode machine prints near-white text onto white paper. */
+    :root,
+    :root[data-theme="dark"],
+    :root[data-theme="light"],
+    :root:not([data-theme="light"]) {
+      --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #F4F6F8;
+      --border: #C9D2DA; --border-firm: #97A3AE;
+      --ink: #101418; --ink-2: #3C464F; --ink-3: #5C6771;
+      --accent: #14507A; --accent-soft: #EDF3F8;
+      --shadow: none;
+    }
+    body { font-size: 10.5pt; background: #FFFFFF; }
+    .wrap { max-width: none; padding: 0; }
+    header.masthead { padding-top: 0; }
+    section { padding-top: 22pt; break-inside: auto; }
+    h1, h2, h3 { break-after: avoid; }
+    figure, .tablewrap, .callout, pre.tree, .verdict { break-inside: avoid; }
+    .figframe { overflow: visible; box-shadow: none; }
+    .figframe svg { min-width: 0; }
+    pre.tree { white-space: pre-wrap; word-break: break-word; }
+    a { color: var(--ink); text-decoration: underline; }
+    /* Links are unclickable on paper, so surface the destination once. */
+    .masthead a::after { content: " (" attr(href) ")"; font-size: .8em; color: var(--ink-3); }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <span class="eyebrow">Design tooling &middot; adoption guide</span>
+    <h1>Keep your design shell honest about production</h1>
+    <p class="lede">
+      A design shell drifts the moment it ships. <code>shell-sync</code> reads what actually
+      merged, checks it against your shell, and codes in what is missing &mdash; stopping for your
+      approval first. It also gives you named versions to explore ideas in, which keep up with
+      production on their own, and turns any of them into one file a developer can open.
+    </p>
+    <div class="facts">
+      <div class="fact"><span class="k">Command</span><span class="v">/shell-sync</span></div>
+      <div class="fact"><span class="k">Needs</span><span class="v">a Claude Design shell</span></div>
+      <div class="fact"><span class="k">To adopt</span><span class="v">an interview + a screen map</span></div>
+      <div class="fact"><span class="k">Runs on</span><span class="v">git &middot; gh &middot; python &middot; node</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">The problem</span>
+      <h2>Shells rot quietly</h2>
+      <p>
+        Most teams end up with a standalone HTML shell of their product: a clickable mirror you can
+        open without a login, a device or a test run. It is the artefact designers reason with and
+        developers glance at.
+      </p>
+      <p>
+        Then it drifts. Features ship and the shell does not move. Someone mocks an idea directly in
+        it. Six weeks later nobody can tell which parts are real, so nobody trusts any of it, and it
+        quietly stops being used.
+      </p>
+      <p>
+        Both halves of that are fixable. Keep one shell rigorously equal to production, and put
+        every unreleased idea somewhere else that is clearly labelled.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">What it does</span>
+      <h2>Three things, and only one is the weekly job</h2>
+    </div>
+
+    <figure>
+      <div class="figframe">
+        <svg viewBox="0 0 760 300" role="img" aria-label="Three uses. First, the weekly sync reads merged pull requests, cuts everything not user-visible, checks the rest against the shell, and stops for approval before writing. Second, versions fork off the production-accurate shell for unreleased ideas, and each sync merges production back into them without touching your own edits. Third, any shell or version becomes one file to hand over.">
+          <defs>
+            <marker id="a-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="a-arw-gate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"></path>
+            </marker>
+            <marker id="a-arw-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--border-firm)"></path>
+            </marker>
+          </defs>
+
+          <rect class="s-box" x="14" y="30" width="216" height="76" rx="5"></rect>
+          <text class="s-n"   x="30" y="54">1</text>
+          <text class="s-t-b" x="48" y="54">Match production</text>
+          <text class="s-m"   x="30" y="76">reads merged PRs, drops</text>
+          <text class="s-m"   x="30" y="93">what nobody can see</text>
+
+          <rect class="s-box" x="272" y="30" width="216" height="76" rx="5"></rect>
+          <text class="s-n"   x="288" y="54">2</text>
+          <text class="s-t-b" x="306" y="54">Explore an idea</text>
+          <text class="s-m"   x="288" y="76">fork it; production keeps</text>
+          <text class="s-m"   x="288" y="93">merging in, your edits stay</text>
+
+          <rect class="s-box" x="530" y="30" width="216" height="76" rx="5"></rect>
+          <text class="s-n"   x="546" y="54">3</text>
+          <text class="s-t-b" x="564" y="54">Hand it over</text>
+          <text class="s-m"   x="546" y="76">one file, opens anywhere,</text>
+          <text class="s-m"   x="546" y="93">no account needed</text>
+
+          <path class="s-line" d="M 122 106 L 122 142" marker-end="url(#a-arw)"></path>
+          <rect class="s-gate" x="14" y="146" width="216" height="44" rx="5"></rect>
+          <text class="s-t-b" x="30" y="166">It stops and shows you</text>
+          <text class="s-m"   x="30" y="183">nothing written until you agree</text>
+
+          <path class="s-line-soft" d="M 380 106 L 380 214" marker-end="url(#a-arw-soft)"></path>
+          <path class="s-line-soft" d="M 638 106 L 638 214" marker-end="url(#a-arw-soft)"></path>
+          <path class="s-line-soft" d="M 122 190 L 122 214" marker-end="url(#a-arw-soft)"></path>
+
+          <rect class="s-ext" x="14" y="218" width="732" height="56" rx="5"></rect>
+          <text class="s-t"  x="30" y="242">One shell everyone trusts, any number of private variations, and a file for anyone</text>
+          <text class="s-m"  x="30" y="261">The shared shell lives in git, so a sync reaches the whole team on their next pull</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>The gate is the point.</b> The run reads production, compares, and then waits. You decide
+        what gets built, so a bad guess costs a conversation rather than a corrupted shell &mdash;
+        and everything is in version control regardless.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">The hard part, solved</span>
+      <h2>Most of what ships is invisible</h2>
+      <p>
+        The naive version of this tool floods you with noise. In one real two-week window a product
+        merged well over a hundred changes; after dropping version bumps, lockfiles and other teams'
+        work in a shared monorepo, eight candidates remained. Asking the tracker what each one
+        actually <em>was</em> cut it to <b>one</b>.
+      </p>
+      <p>
+        The rest were backend validators, analytics properties, worker tuning, an auth migration
+        &mdash; real work, invisible in a design shell. That cut cannot be scripted: it needs the
+        ticket read. It is the difference between a gap report you act on and one you learn to
+        ignore.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figframe">
+        <svg viewBox="0 0 760 190" role="img" aria-label="A funnel: over a hundred merged changes reduce to eight candidates after scripted filters, and to one after reading each ticket to see whether it is user-visible.">
+          <rect x="14" y="22" width="620" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border-firm)" stroke-width="1.2"></rect>
+          <text class="s-t-b" x="30" y="45">100+</text>
+          <text class="s-m"   x="86" y="45">changes merged in the window</text>
+
+          <rect x="14" y="82" width="300" height="36" rx="4" fill="var(--surface-2)" stroke="var(--border-firm)" stroke-width="1.2"></rect>
+          <text class="s-t-b" x="30" y="105">8</text>
+          <text class="s-m"   x="58" y="105">survive the scripted filters</text>
+          <text class="s-fail-t" x="328" y="105">&minus; noise, and other teams&rsquo; work</text>
+
+          <rect x="14" y="142" width="180" height="36" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"></rect>
+          <text class="s-t-b" x="30" y="165">1</text>
+          <text class="s-m"   x="58" y="165">actually user-visible</text>
+          <text class="s-fail-t" x="208" y="165">&minus; backend, analytics, infra, tuning</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>The cut a script cannot make is the one that matters.</b> Deciding that
+        <code>fix(auth): default to v2 when the local group is unresolved</code> is invisible to a
+        designer needs the ticket read first. Skipping that step is the fastest route to a gap
+        report full of work nobody can see.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">Versions</span>
+      <h2>One shell everyone trusts, plus your own</h2>
+      <p>
+        The shared shell holds <b>only what shipped</b>. Anything unreleased forks off it as a named
+        version, yours to change.
+      </p>
+      <p>
+        <b>Versions do not go stale.</b> Each sync merges production back into every one of them:
+        the new production work arrives, your own design edits stay exactly as you left them. When
+        both sides changed the same region the merge <b>stops and the version is left untouched</b>,
+        and you are told which two disagree. That refusal is the only reason merging automatically
+        is safe &mdash; without it, the choice is between rotting versions and silently mangled ones.
+      </p>
+      <p>
+        <b>A version is invisible until you publish it</b>, and an unpublished one looks identical to
+        a shared one, so every listing marks each <code>shared</code> or
+        <code>ONLY ON THIS MACHINE</code>. Publishing is one command; forgetting it is the easiest way
+        to think your team can see something they cannot.
+      </p>
+      <p>
+        Each version is a git branch rather than a copy of the shell, so nothing new appears in your
+        repository&rsquo;s folders and ten variations do not cost ten times the space. Only the app
+        source is versioned: the embedded fonts are almost all of a shell&rsquo;s size, never vary,
+        and are recombined only when a file is produced. Fork points, drift and history all come from
+        git rather than from a note the tool keeps, which is what stops them disagreeing with what
+        actually happened.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">What</th><th scope="col">Where</th><th scope="col">Shared with the team</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="trigger">The production-accurate shell</td><td class="result">a git repo, if you point it at one</td><td class="result"><b>Yes</b> &mdash; a sync lands as a pull request; everyone gets it on their next pull.</td></tr>
+          <tr><td class="trigger">Versions</td><td class="result">a git repo, if you point it at one</td><td class="result"><b>Yes</b> &mdash; anyone can open anyone&rsquo;s variation.</td></tr>
+          <tr><td class="trigger">Record of what was added</td><td class="result">a git repo, if you point it at one</td><td class="result"><b>Yes</b> &mdash; one file per entry, so two people running in the same week merge cleanly.</td></tr>
+          <tr><td class="trigger">Screen boards in Claude Design</td><td class="result">your account</td><td class="result"><b>No</b> &mdash; boards are per-account and shareable only inside a Claude team. Send a file instead.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">Adopting it</span>
+      <h2>What it takes to point this at your product</h2>
+      <p>
+        Nothing in the machinery knows which product it is looking at. Taking an export apart,
+        reading its surface, matching what shipped, versioning, capture &mdash; all of it is
+        generic. Only the answers differ.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Step</th><th scope="col">What is involved</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="trigger">Prerequisite</td><td class="result"><b>You need a Claude Design shell of your product.</b> One bundled HTML export. Without it there is nothing to keep honest.</td></tr>
+          <tr><td class="trigger">Install</td><td class="result">Unzip the folder, run one script, restart. About two minutes, and no repository access to arrange.</td></tr>
+          <tr><td class="trigger">Onboard</td><td class="result"><code>/shell-sync onboard</code> interviews you: ticket prefix, repos, which branch production ships from. It checks each repo is reachable and warns about the answers that fail silently.</td></tr>
+          <tr><td class="trigger">Screen map</td><td class="result">One entry per screen. The only manual part &mdash; see below.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head prose" style="padding-top:18px;">
+      <h3>The screen map, in full</h3>
+      <p>
+        Each screen needs an entry saying how to reach it and how to know you arrived. That is what
+        lets the tool photograph your screens reliably rather than whatever happened to be open:
+      </p>
+    </div>
+
+    <pre class="tree">slug:    test-suites
+nav:     ["Test suites"]          <i>what to click to get there</i>
+gate:    suitesOpen               <i>the internal state that shows this screen</i>
+verify:  "Create test suite"      <i>text proving you landed in the right place</i></pre>
+
+    <div class="section-head prose" style="padding-top:8px;">
+      <p>
+        Claude reads your shell, finds the states and drafts the entries; you confirm them. How
+        many you need depends on how many screens you want boarded &mdash; start with the ones
+        people actually look at and add the rest later. A test then checks every state exists and
+        every verify string really sits inside it &mdash; on the first product that test caught two wrong
+        entries before they shipped, one pointing at the wrong state and one with a capitalisation
+        that did not match the shell.
+      </p>
+    </div>
+
+    <div class="callout">
+      <span class="clabel">Worth knowing before you commit</span>
+      <p>
+        Two people editing the shell in the same week will conflict &mdash; it is a single large
+        file and git cannot merge it usefully. Everything else merges cleanly. If your team is
+        likely to run this concurrently, agree one owner for the weekly sync; it is a ten-minute
+        job once a week.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">Day to day</span>
+      <h2>What you actually type</h2>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">If you want to&hellip;</th><th scope="col">Ask for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="result">Know whether your copy is up to date</td><td class="trigger">/shell-sync check</td></tr>
+          <tr><td class="result">Bring the shell up to what shipped</td><td class="trigger">/shell-sync</td></tr>
+          <tr><td class="result">Start your own variation</td><td class="trigger">/shell-sync new v2 "an idea"</td></tr>
+          <tr><td class="result">See every variation, which are behind, and which are shared</td><td class="trigger">/shell-sync versions</td></tr>
+          <tr><td class="result">Let the team see a variation</td><td class="trigger">/shell-sync publish v2</td></tr>
+          <tr><td class="result">Bring production into a variation</td><td class="trigger">/shell-sync refresh v2</td></tr>
+          <tr><td class="result">Get one variation as a file to send</td><td class="trigger">/shell-sync share v2</td></tr>
+          <tr><td class="result">Prepare a developer handover</td><td class="trigger">/shell-sync handover v2</td></tr>
+          <tr><td class="result">Browse a shell as screens</td><td class="trigger">/shell-sync storyboard</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head prose" style="padding-top:8px;">
+      <p>
+        <code>check</code> is the right first move in any session: it reports what your copy has,
+        whether you are behind the team, and what is missing &mdash; and writes nothing. Plain
+        English works as well as the commands.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">How it works</span>
+      <h2>Inside one run</h2>
+      <p>
+        Six steps. Five are machine work; the fifth is you. Nothing reaches the shell before you
+        have seen what it found.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figframe">
+        <svg viewBox="0 0 760 300" role="img" aria-label="A run in six steps: read merged pull requests since the last run, ask the tracker what each one is and drop anything not user-visible, read the shell's own surface and compare, photograph the live product for anything missing, stop for your approval, then code it in and verify by rendering. Failure paths: anything unreachable is asked of you rather than guessed, and a failed verification restores the shell.">
+          <defs>
+            <marker id="h-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="h-arw-gate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"></path>
+            </marker>
+            <marker id="h-arw-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--missing)"></path>
+            </marker>
+          </defs>
+
+          <rect class="s-box" x="14" y="26" width="212" height="46" rx="5"></rect>
+          <text class="s-n" x="28" y="46">1</text><text class="s-t-b" x="48" y="46">Read what merged</text>
+          <text class="s-m" x="28" y="64">since your last run</text>
+
+          <rect class="s-box" x="14" y="86" width="212" height="46" rx="5"></rect>
+          <text class="s-n" x="28" y="106">2</text><text class="s-t-b" x="48" y="106">Ask what each one is</text>
+          <text class="s-m" x="28" y="124">drop everything invisible</text>
+
+          <rect class="s-box" x="14" y="146" width="212" height="46" rx="5"></rect>
+          <text class="s-n" x="28" y="166">3</text><text class="s-t-b" x="48" y="166">Compare to the shell</text>
+          <text class="s-m" x="28" y="184">present / missing / unsure</text>
+
+          <rect class="s-box" x="14" y="206" width="212" height="46" rx="5"></rect>
+          <text class="s-n" x="28" y="226">4</text><text class="s-t-b" x="48" y="226">Photograph the real UI</text>
+          <text class="s-m" x="28" y="244">only what is missing</text>
+
+          <path class="s-line" d="M 226 49 L 262 49"></path>
+          <path class="s-line" d="M 226 109 L 262 109"></path>
+          <path class="s-line" d="M 226 169 L 262 169"></path>
+          <path class="s-line" d="M 226 229 L 262 229"></path>
+          <path class="s-line" d="M 262 49 L 262 229"></path>
+          <path class="s-line" d="M 262 139 L 306 139" marker-end="url(#h-arw)"></path>
+
+          <rect class="s-gate" x="310" y="106" width="196" height="66" rx="5"></rect>
+          <text class="s-n"   x="326" y="130">5</text>
+          <text class="s-t-b" x="346" y="130">You approve</text>
+          <text class="s-m"   x="326" y="150">the gap report, in full</text>
+          <text class="s-m"   x="326" y="166">nothing written yet</text>
+
+          <path class="s-line" d="M 506 139 L 546 139" marker-end="url(#h-arw)"></path>
+          <rect class="s-box" x="550" y="106" width="196" height="66" rx="5"></rect>
+          <text class="s-n"   x="566" y="130">6</text>
+          <text class="s-t-b" x="586" y="130">Code it in, verify</text>
+          <text class="s-m"   x="566" y="150">rendered in a real browser</text>
+          <text class="s-m"   x="566" y="166">before you get the file</text>
+
+          <path class="s-gate" d="M 226 229 L 290 229 L 290 178" fill="none" stroke-width="1.4" marker-end="url(#h-arw-gate)"></path>
+          <text class="s-n" x="300" y="204">could not reach it?</text>
+          <text class="s-n" x="300" y="220">it asks you, never guesses</text>
+
+          <path class="s-fail" d="M 648 172 L 648 262 L 240 262" marker-end="url(#h-arw-fail)"></path>
+          <text class="s-fail-t" x="330" y="256">verification fails &rarr; shell restored, run stops</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Step 2 is the one that makes it usable</b>, and the one a tool without it gets wrong.
+        <b>Step 5 is the one that makes it safe</b> &mdash; it is the only step that is not code, and
+        the run does not continue without you.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">Day to day</span>
+      <h2>The flow you will actually live in</h2>
+      <p>
+        Most weeks you are not syncing. You are checking you are current, trying something, or
+        sending a file to somebody.
+      </p>
+    </div>
+
+    <figure>
+      <div class="figframe">
+        <svg viewBox="0 0 760 288" role="img" aria-label="Everyday flow: start by checking you are current. From there, either run the weekly sync which updates the shared shell for the whole team, or fork a version to explore an idea. Either can be shared as a single file or browsed as screens in your own Claude Design account.">
+          <defs>
+            <marker id="d-arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="d-arw-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--border-firm)"></path>
+            </marker>
+          </defs>
+
+          <rect x="14" y="106" width="182" height="56" rx="5" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"></rect>
+          <text class="s-t-b" x="30" y="130">/shell-sync check</text>
+          <text class="s-m"   x="30" y="149">always start here</text>
+
+          <path class="s-line" d="M 196 122 L 246 76" marker-end="url(#d-arw)"></path>
+          <path class="s-line" d="M 196 146 L 246 192" marker-end="url(#d-arw)"></path>
+
+          <rect class="s-box" x="250" y="42" width="214" height="62" rx="5"></rect>
+          <text class="s-t-b" x="266" y="64">/shell-sync</text>
+          <text class="s-m"   x="266" y="83">updates the shared shell</text>
+          <text class="s-m"   x="266" y="98">the whole team pulls it</text>
+
+          <rect class="s-box" x="250" y="164" width="214" height="62" rx="5"></rect>
+          <text class="s-t-b" x="266" y="186">/shell-sync new v2</text>
+          <text class="s-m"   x="266" y="205">your own copy to change</text>
+          <text class="s-m"   x="266" y="220">nobody overwrites it</text>
+
+          <path class="s-line-soft" d="M 464 73 L 512 118" marker-end="url(#d-arw-soft)"></path>
+          <path class="s-line-soft" d="M 464 195 L 512 150" marker-end="url(#d-arw-soft)"></path>
+
+          <rect class="s-box" x="516" y="88" width="230" height="46" rx="5"></rect>
+          <text class="s-t-b" x="532" y="108">/shell-sync share</text>
+          <text class="s-m"   x="532" y="126">one file &mdash; send it to anyone</text>
+
+          <rect class="s-box" x="516" y="142" width="230" height="46" rx="5"></rect>
+          <text class="s-t-b" x="532" y="162">/shell-sync storyboard</text>
+          <text class="s-m"   x="532" y="180">screens, in your own account</text>
+
+          <text class="s-m" x="14" y="262">Weekly, one person runs the sync. Everyone else pulls. Versions and sharing are yours to use any time.</text>
+        </svg>
+      </div>
+      <figcaption>
+        <b>Only the top path changes anything shared.</b> Forking a version, sharing a file and
+        boarding screens all leave the team&rsquo;s shell exactly where it was.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">What you install</span>
+      <h2>One folder, no repository access</h2>
+      <p>
+        You were sent a <code>shell-sync</code> folder, about 300 KB. That is the whole tool. There
+        is no repository to be added to, no access request, and nothing to wait for.
+      </p>
+    </div>
+
+    <pre class="tree">unzip shell-sync.zip
+bash shell-sync/install.sh     <i>links it into ~/.claude/skills</i>
+<i>restart Claude Code, then:</i>
+/shell-sync onboard</pre>
+
+    <div class="section-head prose" style="padding-top:14px;">
+      <p>
+        What arrives is deliberately <b>only the tool</b>. There is no shell in it and no
+        configuration, because those are yours: the onboarding interview writes your profile, and
+        you supply your own Claude Design export. Nothing carries over from whoever sent it to you
+        &mdash; not their product, not their screens, not their record of what shipped.
+      </p>
+    </div>
+
+    <pre class="tree">shell-sync/
+├── <b>install.sh</b>      run this once
+├── <b>README.md</b>       the short version of this page
+├── <b>SKILL.md</b>        the instructions the assistant follows
+├── <b>adopt.html</b>      this document, to keep
+├── <b>lib/</b>            13 files — the tool itself
+└── <b>tests/</b>          12 files — proof the tool still works</pre>
+
+    <div class="section-head prose" style="padding-top:16px;">
+      <h3>The four you will actually touch</h3>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">File</th><th scope="col">What it does for you</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="trigger"><code>install.sh</code></td><td class="result">Links the folder into <code>~/.claude/skills/</code> so the command exists. Checks your Python version and warns if the GitHub CLI is missing. Refuses rather than overwrites if something is already there.</td></tr>
+          <tr><td class="trigger"><code>README.md</code></td><td class="result">Install, prerequisites, and the list of commands. What to read if you have thirty seconds.</td></tr>
+          <tr><td class="trigger"><code>SKILL.md</code></td><td class="result">The full instructions the assistant reads and follows every run. This is the answer to &ldquo;what exactly is it about to do to my shell?&rdquo; &mdash; including every point where it must stop and ask you.</td></tr>
+          <tr><td class="trigger"><code>tests/</code></td><td class="result"><code>python3 -m unittest discover -s tests</code>. Worth running once after install: it is the fastest way to know the copy you were sent is intact. Some tests skip on a fresh install because they need a shell and a screen map you do not have yet &mdash; that is expected, not a failure.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head prose" style="padding-top:22px;">
+      <h3>Inside <code>lib/</code> &mdash; one file per job</h3>
+      <p>
+        You never run these directly; the assistant does. They are listed because the honest answer
+        to &ldquo;what did you just install?&rdquo; should be available, and because knowing which
+        file owns which step makes it much easier to say what went wrong when something does.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">File</th><th scope="col">Its one job</th><th scope="col">Why it is separate</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="trigger"><code>bundle.py</code></td>
+            <td class="result">Splits a Claude Design export into fonts and app source, and joins them back.</td>
+            <td class="result">The app source lives inside a <code>&lt;script&gt;</code> tag with escaped slashes. Rejoin it wrongly and the page renders <b>blank with no error at all</b>. One file owns that rule.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>harvest.py</code></td>
+            <td class="result">Asks GitHub which pull requests shipped in the window.</td>
+            <td class="result">Its filters are tuned against real releases &mdash; version bumps, lockfiles, unit tests, other teams&rsquo; work in a shared repo.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>index.py</code></td>
+            <td class="result">Reads your shell and lists everything it can show: commands, screens, visible labels.</td>
+            <td class="result">This is what &ldquo;is the feature already here?&rdquo; is answered against. It handles both export shapes Claude Design produces.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>match.py</code></td>
+            <td class="result">Scores each shipped feature against that list. Present, missing, or unsure.</td>
+            <td class="result">Its job is to <em>refuse to guess</em>: anything it is not confident about comes back as unsure, for the assistant to settle by reading the shell.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>capture.mjs</code></td>
+            <td class="result">Walks your shell in a real browser and screenshots each screen.</td>
+            <td class="result">The only JavaScript file. Browser automation is a Node library, so this one step is not Python.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>gitstore.py</code></td>
+            <td class="result">Reads and writes git branches without ever checking one out.</td>
+            <td class="result">Versions are branches. Checking one out would swap the tool&rsquo;s own code and its history mid-run, and would fail whenever you had unsaved work &mdash; so nothing here ever does.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>versions.py</code></td>
+            <td class="result">Forks a variation, reports how far behind it is, packs one into a sendable file.</td>
+            <td class="result">Also refuses version names that could reach outside their own branch namespace.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>storyboard.py</code></td>
+            <td class="result">Turns captured screens into labelled artboards in Claude Design.</td>
+            <td class="result">Holds the screen map &mdash; the one part of setup that is genuinely yours to write.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>ledger.py</code></td>
+            <td class="result">Remembers what was added and when the last run was.</td>
+            <td class="result">This is what makes a missed week catch up rather than silently skip.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>paths.py</code></td>
+            <td class="result">Reads your profile and works out where everything lives.</td>
+            <td class="result">Includes a fifty-line config reader, so there is no dependency to install.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>onboard.py</code></td>
+            <td class="result">Turns your interview answers into a profile &mdash; after checking them.</td>
+            <td class="result">Confirms every repo you name is actually reachable, and warns about the answers that fail silently.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>doctor.py</code></td>
+            <td class="result">Reports what your copy has and what is missing. Writes nothing.</td>
+            <td class="result">What <code>/shell-sync check</code> runs. The right first move whenever something looks wrong.</td>
+          </tr>
+          <tr>
+            <td class="trigger"><code>package.py</code></td>
+            <td class="result">Builds this zip, so you can pass the tool on to someone else.</td>
+            <td class="result">Ships the tool and holds back all content &mdash; no shell, no profile, no history. It refuses to build if anything of yours would leak.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="clabel">If you ever go looking in here</span>
+      <p>
+        <code>bundle.py</code> and <code>index.py</code> are the two where a freehand rewrite quietly
+        produces a broken shell rather than an error. Everything else fails loudly. It is all
+        standard-library Python &mdash; readable, and nothing to install &mdash; but those two earned
+        their scars, and the comments in them say what from.
+      </p>
+    </div>
+
+    <div class="section-head prose" style="padding-top:14px;">
+      <h3>Where your own work goes</h3>
+      <p>
+        Two things the tool produces are yours to keep somewhere: the shell it maintains, and the
+        versions you fork from it. By default both live inside the skill folder, which is fine for
+        one person.
+      </p>
+      <p>
+        <b>If you want a team to share them</b>, point <code>version_repo</code> at a repository your
+        team already has &mdash; any repository, it does not matter which, and onboarding asks for it.
+        Versions are stored there as git branches, so nothing new appears in its folders. A relative
+        path is resolved against the folder holding your checkouts rather than against your home
+        directory, so one committed setting works on everybody&rsquo;s machine. Hand-edited absolute
+        paths were the earlier design, and meant nobody could open anybody else&rsquo;s version.
+      </p>
+      <p>
+        Only the app source of a shell is stored, never whole exports. The embedded fonts are almost
+        all of a shell&rsquo;s weight and never vary, so they live once and are recombined when a
+        file is produced. That is what keeps a week&rsquo;s change reviewable as a few lines rather
+        than a megabyte of unreadable data.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">Design decisions</span>
+      <h2>Why it is built this way</h2>
+      <p>
+        Three choices shape everything else, and each ruled out something more obvious.
+      </p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">The obvious approach</th><th scope="col">Why it was not used</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="trigger">Screenshot the product,<br>diff it against the shell</td>
+            <td class="result">This was the original plan. It reports <em>everything</em> as different &mdash; different fonts, spacing, seed data, real device screens against placeholders &mdash; so it cannot answer &ldquo;is this feature here?&rdquo;. Comparing the shell&rsquo;s own text and structure answers it reliably; screenshots then do the job they are good at, which is showing what to build and confirming the result.</td>
+          </tr>
+          <tr>
+            <td class="trigger">No scripts &mdash; let the<br>assistant do all of it</td>
+            <td class="result">Tempting, and wrong for the parts that must give the <b>same answer every week</b>. A filter that drifts run to run is indistinguishable from a real change in what shipped, and you would never catch it. So the deterministic work &mdash; taking the export apart, reading its surface, filtering, scoring &mdash; is code, and the judgement work stays with the assistant.</td>
+          </tr>
+          <tr>
+            <td class="trigger">Add the usual dependencies<br>(a YAML parser, a test runner)</td>
+            <td class="result">Everything is standard-library Python, which means it runs from an unzipped folder with nothing installed &mdash; no virtualenv, no version pinning, no <code>pip install</code> failing on somebody&rsquo;s machine two months from now. The config reader is fifty lines instead of a dependency, and the tests use the runner already in the language.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head prose" style="padding-top:14px;">
+      <p>
+        The one exception is the screenshot step, which is JavaScript &mdash; the browser automation
+        that does that job well is a Node library, and reimplementing it would be far worse than
+        accepting one extra runtime. Everything else is Python, and the split is along that line
+        rather than by preference.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head prose">
+      <span class="eyebrow">Honest limits</span>
+      <h2>What it will not do</h2>
+      <p>
+        <b>It will not invent an appearance.</b> If it cannot reach a feature in the live product
+        &mdash; behind a flag, off-plan, needing a real device session &mdash; it says so and asks
+        you for a screenshot rather than guessing. Expect that regularly; it is the design working,
+        not failing.
+      </p>
+      <p>
+        <b>It will not edit your Claude Design document.</b> The connection is one-way: you export,
+        it consumes. Your design work stays authoritative, and a record of every change it made
+        lets a fresh export be re-patched rather than losing that work.
+      </p>
+      <p>
+        <b>It will not share a board across accounts.</b> Claude Design boards can only be shared
+        inside a Claude team, so anything going to someone outside it goes as a file.
+      </p>
+      <p>
+        <b>It will not hand you an unverified file.</b> Every change is rendered in a real browser
+        first &mdash; the new element must be present and the page must load without errors. If
+        that fails, the shell is restored and the run stops.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Ask your Claude Code for <code>/shell-sync onboard</code> to get started</span>
+    <span>Prepared for teams considering adoption</span>
+  </footer>
+
+</div>

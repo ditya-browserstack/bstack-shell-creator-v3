@@ -1,0 +1,9 @@
+{
+  "product": "App Automate",
+  "designSystem": "designstack",
+  "repoPath": "~/projects/REPLACE-with-local-repo-path",
+  "storybookUrl": "http://localhost:6006",
+  "liveUrl": "https://REPLACE-with-a-reachable-running-url",
+  "chrome": { "topbar": "", "sidebar": "", "activeNav": "REPLACE-with-active-nav-label" },
+  "vocabulary": ["REPLACE", "with", "product", "nouns"]
+}
