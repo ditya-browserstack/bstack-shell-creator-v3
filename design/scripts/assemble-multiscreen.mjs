@@ -50,7 +50,13 @@ const script = `
     a.classList.toggle('text-brand-default', on);
     a.classList.toggle('text-neutral-weak', !on);
   }
-  function slugOf(a){ var m=(a.getAttribute('href')||'').match(/\\/([a-z-]+)(?:$|[/?#])/); return m?m[1]:null; }
+  function slugOf(a){
+    var href=(a.getAttribute('href')||'').split(/[?#]/)[0];
+    if(/\\/tests\\/[A-Za-z0-9_-]{6,}$/.test(href)) return 'test-editor';   // a test row -> the editor
+    var segs=href.split('/').filter(Boolean);
+    for(var i=segs.length-1;i>=0;i--){ if(/^[a-z-]+$/.test(segs[i])) return segs[i]; }
+    return null;
+  }
   function show(slug){
     document.querySelectorAll('.ms-panel').forEach(function(p){p.hidden=p.getAttribute('data-screen')!==slug;});
     document.querySelectorAll('a[href]').forEach(function(a){ var s=slugOf(a); if(s&&SLUGS.indexOf(s)>-1) setActive(a, s===slug); });
