@@ -35,6 +35,7 @@ Reference files are read **when you reach that step, not upfront.**
 | SETUP (all steps) | `references/setup.md` |
 | SETUP: config fields | `references/config-guide.md` |
 | SETUP: capture the real shell (primary) | `references/capture-shell.md` |
+| SETUP: capture ALL major pages (multi-screen) | `references/capture-multiscreen.md` |
 | SETUP: reconstruct shell if no live app (fallback) | `references/capture-app.md` |
 | SETUP: sheet shape + how to check | `references/sheet-structure.md` |
 | USE: mount explorations in the real shell (one tab + switcher) | `references/mount-switcher.md` |
