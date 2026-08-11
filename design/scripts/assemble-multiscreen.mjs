@@ -31,6 +31,12 @@ const dir = join(SKILL, 'products', slug, 'app-shell', 'screens');
 if (!existsSync(dir)) { console.error(`no screens dir: ${dir} — capture screens first (see capture-multiscreen.md)`); process.exit(1); }
 
 const screens = JSON.parse(readFileSync(join(dir, 'screens.json'), 'utf8'));
+// detail-route wiring is DATA-DRIVEN: any screen with "detailFor":"<section>" claims the
+// section's row-detail route (e.g. {slug:"test-editor",detailFor:"tests"} => /tests/<id> opens it).
+// This replaces the old hardcoded tests->test-editor special-case, so any product wires its own
+// detail pages (suite-detail, build-detail, run-report…) just by adding screens.json entries.
+const detailMap = {};
+for (const s of screens) if (s.detailFor) detailMap[s.detailFor] = s.slug;
 let chrome = readFileSync(join(dir, 'chrome.html'), 'utf8');
 if (!chrome.includes('id="screen-mount"')) { console.error('chrome.html has no <div id="screen-mount">'); process.exit(1); }
 
@@ -43,6 +49,7 @@ const script = `
 <style>.ms-panel[hidden]{display:none!important}</style>
 <script>(function(){
   var SLUGS=${JSON.stringify(screens.map((s) => s.slug))};
+  var DETAIL=${JSON.stringify(detailMap)};   // { section-slug : detail-screen-slug }
   // Replicate the app's REAL active state (from the live DOM): active link = bg-neutral-strong +
   // text-brand-default; inactive = text-neutral-weak. No invented bar.
   function setActive(a, on){
@@ -52,9 +59,13 @@ const script = `
   }
   function slugOf(a){
     var href=(a.getAttribute('href')||'').split(/[?#]/)[0];
-    if(/\\/tests\\/[A-Za-z0-9_-]{6,}$/.test(href)) return 'test-editor';   // a test row -> the editor
     var segs=href.split('/').filter(Boolean);
-    for(var i=segs.length-1;i>=0;i--){ if(/^[a-z-]+$/.test(segs[i])) return segs[i]; }
+    // detail route: /<section>/<id> where the section declared a detail screen (id=6+ alnum/hash or 4+ digits)
+    for(var i=1;i<segs.length;i++){
+      if(DETAIL[segs[i-1]] && /^([A-Za-z0-9_-]{6,}|[0-9]{4,})$/.test(segs[i])) return DETAIL[segs[i-1]];
+    }
+    // top-level: the last path segment that is a known screen slug
+    for(var j=segs.length-1;j>=0;j--){ if(SLUGS.indexOf(segs[j])>-1) return segs[j]; }
     return null;
   }
   function show(slug){

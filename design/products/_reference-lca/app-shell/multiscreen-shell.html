@@ -3457,6 +3457,7 @@ Open a web browser and navigate to&nbsp;https://example.com The Add/Remove Eleme
 <style>.ms-panel[hidden]{display:none!important}</style>
 <script>(function(){
   var SLUGS=["tests","suites","builds","modules","settings","test-editor"];
+  var DETAIL={"tests":"test-editor"};   // { section-slug : detail-screen-slug }
   // Replicate the app's REAL active state (from the live DOM): active link = bg-neutral-strong +
   // text-brand-default; inactive = text-neutral-weak. No invented bar.
   function setActive(a, on){
@@ -3466,9 +3467,13 @@ Open a web browser and navigate to&nbsp;https://example.com The Add/Remove Eleme
   }
   function slugOf(a){
     var href=(a.getAttribute('href')||'').split(/[?#]/)[0];
-    if(/\/tests\/[A-Za-z0-9_-]{6,}$/.test(href)) return 'test-editor';   // a test row -> the editor
     var segs=href.split('/').filter(Boolean);
-    for(var i=segs.length-1;i>=0;i--){ if(/^[a-z-]+$/.test(segs[i])) return segs[i]; }
+    // detail route: /<section>/<id> where the section declared a detail screen (id=6+ alnum/hash or 4+ digits)
+    for(var i=1;i<segs.length;i++){
+      if(DETAIL[segs[i-1]] && /^([A-Za-z0-9_-]{6,}|[0-9]{4,})$/.test(segs[i])) return DETAIL[segs[i-1]];
+    }
+    // top-level: the last path segment that is a known screen slug
+    for(var j=segs.length-1;j>=0;j--){ if(SLUGS.indexOf(segs[j])>-1) return segs[j]; }
     return null;
   }
   function show(slug){
