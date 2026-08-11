@@ -40,21 +40,25 @@ const panels = screens.map((s, i) =>
 chrome = chrome.replace(/<div id="screen-mount"><\/div>/, `<div id="screen-mount">${panels}</div>`);
 
 const script = `
-<style>.ms-panel[hidden]{display:none!important} .ms-nav-active{box-shadow:inset 3px 0 0 0 #2563eb;background:rgba(37,99,235,.06);border-radius:6px}</style>
+<style>.ms-panel[hidden]{display:none!important}</style>
 <script>(function(){
   var SLUGS=${JSON.stringify(screens.map((s) => s.slug))};
+  // Replicate the app's REAL active state (from the live DOM): active link = bg-neutral-strong +
+  // text-brand-default; inactive = text-neutral-weak. No invented bar.
+  function setActive(a, on){
+    a.classList.toggle('bg-neutral-strong', on);
+    a.classList.toggle('text-brand-default', on);
+    a.classList.toggle('text-neutral-weak', !on);
+  }
+  function slugOf(a){ var m=(a.getAttribute('href')||'').match(/\\/([a-z-]+)(?:$|[/?#])/); return m?m[1]:null; }
   function show(slug){
     document.querySelectorAll('.ms-panel').forEach(function(p){p.hidden=p.getAttribute('data-screen')!==slug;});
-    document.querySelectorAll('a[href]').forEach(function(a){
-      var m=(a.getAttribute('href')||'').match(/\\/([a-z-]+)(?:$|[/?#])/);
-      a.classList.toggle('ms-nav-active', !!m && m[1]===slug);
-    });
+    document.querySelectorAll('a[href]').forEach(function(a){ var s=slugOf(a); if(s&&SLUGS.indexOf(s)>-1) setActive(a, s===slug); });
     window.scrollTo(0,0);
   }
   document.addEventListener('click',function(e){
-    var a=e.target.closest('a[href]'); if(!a) return;
-    var m=(a.getAttribute('href')||'').match(/\\/([a-z-]+)(?:$|[/?#])/);
-    if(m && SLUGS.indexOf(m[1])>-1){e.preventDefault(); show(m[1]);}
+    var a=e.target.closest('a[href]'); if(!a) return; var s=slugOf(a);
+    if(s && SLUGS.indexOf(s)>-1){e.preventDefault(); show(s);}
   },true);
   show(SLUGS[0]);
 })();</script>`;

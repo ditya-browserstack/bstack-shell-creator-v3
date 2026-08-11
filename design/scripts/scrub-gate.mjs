@@ -35,12 +35,19 @@ const RULES = [
     bad: (m) => !ALLOW_HOSTS.some((h) => m.includes(h)) && DATA_PATH.test(m)
   },
   {
-    // record attribution: "updated by Malvika Chaudhary", "created by Firstname Lastname".
-    // High signal that a record-bearing region (a table row) got captured — it shouldn't be.
+    // record attribution on RAW html (same-run names)
     name: 'attributed-name',
     re: /\b(updated|created|modified|owned|shared|added|last edited)\s+by\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/gi,
     bad: () => true
   }
+];
+
+// Rules that run on TEXT (tags stripped) — catches names split across tags like
+// "updated by</span><a>Malvika Chaudhary</a>", which the raw-HTML rules miss.
+const FAKE = /Sample User|Example User/i; // known placeholders — not a leak
+const TEXT_RULES = [
+  { name: 'attributed-name (text)', re: /\b(updated|created|modified|owned|shared|added|last edited)\s+by\s+[A-Z][a-z]+\s+[A-Z][a-z]+/gi, bad: (m) => !FAKE.test(m) },
+  { name: 'record-name+date', re: /[A-Z][a-z]+\s+[A-Z][a-z]+\s+on\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/g, bad: (m) => !FAKE.test(m) }
 ];
 
 let hits = 0;
@@ -57,14 +64,17 @@ for (const f of targets) {
     console.error(`scrub-gate: cannot read ${f}`);
     process.exit(1);
   }
-  for (const rule of RULES) {
-    const found = new Set();
-    let m;
-    rule.re.lastIndex = 0;
-    while ((m = rule.re.exec(html))) if (rule.bad(m[0])) found.add(m[0]);
-    for (const v of found) {
-      console.error(`  PII? [${rule.name}] ${v}   (${f})`);
-      hits++;
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+  for (const [rules, subject] of [[RULES, html], [TEXT_RULES, text]]) {
+    for (const rule of rules) {
+      const found = new Set();
+      let m;
+      rule.re.lastIndex = 0;
+      while ((m = rule.re.exec(subject))) if (rule.bad(m[0])) found.add(m[0]);
+      for (const v of found) {
+        console.error(`  PII? [${rule.name}] ${v}   (${f})`);
+        hits++;
+      }
     }
   }
 }

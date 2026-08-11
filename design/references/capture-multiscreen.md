@@ -30,13 +30,21 @@ download('chrome.html', doc);
 ```
 
 ## 3. Capture each screen's content (navigate + run)
-For each route: navigate, wait ~2s for the SPA, then:
+**Keep the rows — a blank list is not the product.** Do NOT prune the records; instead **scrub the
+data inside them** so the page stays full but carries no real people or customers. For each route:
+navigate, wait ~2s for the SPA, then:
 ```js
 const src=document.querySelector('#app-main-content')||document.querySelector('#webapp-content');
-const c=src.cloneNode(true);
-c.querySelectorAll('tbody tr, [role="row"]').forEach((r,i)=>{ if(i>0) r.remove(); }); // drop record rows
-download('<slug>.html', scrub(c.outerHTML)); // scrub incl. "updated by <Name>" -> "Sample User"
+let html=src.outerHTML
+  // author name is the <span> right after "... by </span>": replace just that span's text
+  .replace(/((?:updated|created|modified|shared|added|last edited) by\s*<\/span>\s*<span[^>]*>)[^<]{1,80}(<\/span>)/gi,'$1Sample User$2')
+  // customer URLs + bare hostnames (incl. trailing paths) -> example.com; keep browserstack/example/CDNs
+  .replace(/https?:\/\/(?!(?:[a-z0-9-]+\.)*(?:browserstack\.com|example\.com))[a-z0-9.-]+[^\s"'<>]*/gi,'https://example.com')
+  .replace(/\b(?!(?:www\.)?(?:browserstack|example|w3|gstatic|googleapis|schema)\.)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi,'example.com');
+download('<slug>.html', html);
 ```
+Test **titles** (e.g. "Login flow") are not personal data — keep them; they make the page realistic.
+Only names, emails, and customer domains get replaced.
 Save these into `products/<slug>/app-shell/screens/` plus a `screens.json`:
 `[ { "slug":"tests","label":"Tests" }, { "slug":"suites","label":"Test suites" }, ... ]`.
 
