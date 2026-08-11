@@ -47,20 +47,24 @@ If a command is unrecognised, show this table — never guess.
 ## The bridge (design → sync), one time per product
 ```bash
 cd design
-node scripts/finalize-shell.mjs     products/<slug>/app-shell/shell-scaffold.html --slug <slug>
-node scripts/shell-sync-onboard.mjs --slug <slug>     # → app-shell/shell-sync-onboard.json
-node scripts/screen-map-draft.mjs   products/<slug>/app-shell/shell-scaffold.html --slug <slug>
+node scripts/shell-sync-onboard.mjs --slug <slug>     # → app-shell/shell-sync-onboard.json (config)
+node scripts/handoff-to-sync.mjs    --slug <slug>     # COMPLETE screen-map + screenshots + @dsCard gallery
 cd ../sync
 python3 lib/onboard.py write ../design/products/<slug>/app-shell/shell-sync-onboard.json
-# paste ../design/products/<slug>/app-shell/screen-map.draft.md into lib/storyboard.py SCREENS; confirm gate/verify
 ```
+`handoff-to-sync.mjs` removes the old manual step: it derives a **complete** `shell-sync-screens.json`
+(nav + verify filled from the multi-screen capture — no paste, no gate/verify TODO), then runs Harsh's
+`capture.mjs` **unmodified** against our plain-HTML shell to screenshot every screen and wrap each into
+a self-contained `@dsCard` preview the Claude Design pane indexes → `app-shell/cards/`. Top-level
+screens verify on their heading; detail pages (`detailFor`) get a panel-unique verify so a missed
+row-click is reported, never mislabelled.
 
 ## The one real seam (documented, not hidden)
-`design/` captures a **single high-fidelity surface as plain HTML**. `sync/`'s weekly *brain*
+`design/` captures the product as **plain HTML** (now multi-screen). `sync/`'s weekly *brain*
 (`index.py`/`match.py`) reads **Claude Design `x-dc` shells** (`<sc-if cond="screen===…">`), so it
-can fully reason only about a Claude Design export.
-- `sync`'s screenshotter (`capture.mjs`, storyboard) **can** drive the plain-HTML shell (it clicks
-  nav labels + checks `verify` text) → screenshots work.
+can *deep-parse* only a Claude Design export.
+- `sync`'s screenshotter (`capture.mjs`) **does** drive the plain-HTML shell — `handoff-to-sync.mjs`
+  feeds it and produces the `@dsCard` gallery. Screenshots + cards work end-to-end, no fork edit.
 - `sync`'s diff/index **cannot** deep-parse it → for full weekly-sync reasoning the shell must be a
   Claude Design export. This boundary is inherent to forking two different shell formats; it is not
   a bug to fix silently. Prefer: use `design/` for capture + explorations; use `sync/` for freshness

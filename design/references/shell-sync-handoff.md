@@ -9,22 +9,28 @@ Design shell to exist"* — that shell is this skill's output.
 **This skill = producer · shell-sync = maintainer + distributor + Claude-Design bridge.** Verified
 against `shell-sync.zip` (Python, stdlib-only, profile-per-product).
 
-## Produce the exact handoff (two generators, real contract)
+## Produce the exact handoff (one command + the config JSON)
 ```bash
-cd ~/projects/lcnc-workspace/lcnc-backend/workspace/skills/bs-design-from-tb
-# 1. self-contained, scrubbed shell (shell-sync needs one browser-openable HTML file)
-node scripts/finalize-shell.mjs     products/<slug>/app-shell/shell-scaffold.html --slug <slug>
-# 2. onboarding JSON in the exact shape `lib/onboard.py write` validates
+cd ~/.claude/skills/bstack-design-studio/design
+# 1. onboarding JSON in the exact shape `lib/onboard.py write` validates
 node scripts/shell-sync-onboard.mjs --slug <slug>   # → app-shell/shell-sync-onboard.json
-# 3. a paste-ready storyboard.SCREENS draft, pre-filled from the real sidebar
-node scripts/screen-map-draft.mjs   products/<slug>/app-shell/shell-scaffold.html --slug <slug>
+# 2. COMPLETE screen-map + screenshots + @dsCard gallery, in one command
+node scripts/handoff-to-sync.mjs    --slug <slug>   # → shell-sync-screens.json + shots/ + cards/
 ```
+`handoff-to-sync.mjs` reads the multi-screen capture (`app-shell/screens/`) and:
+- derives a **complete** `shell-sync-screens.json` (`{slug,title,group,nav,gate,verify}` for every
+  screen, **filled from the capture — no manual paste, no gate/verify TODO**). Top-level screens
+  verify on their heading; `detailFor` detail pages get a **panel-unique** verify + a best-effort
+  row-click nav, so a missed click is reported as `NEEDS_SCREENSHOT`, never mislabelled.
+- runs Harsh's `sync/lib/capture.mjs` **unmodified** against the plain-HTML `multiscreen-shell.html`
+  (a tiny local static server + `PLAYWRIGHT_CORE`/`CHROME_PATH`), screenshotting each screen to
+  `shots/`, then wraps each PNG into a self-contained `@dsCard` preview in `cards/` that the Claude
+  Design pane indexes. `--no-shots` emits just the screen-map if you'd rather run the camera elsewhere.
 
-Then, **in the shell-sync install**:
+Then, **in the shell-sync install**, register the product config:
 ```bash
 python3 lib/onboard.py write <abs path>/products/<slug>/app-shell/shell-sync-onboard.json
-# point its shell_source at the finalized shell (the JSON already does)
-# paste the screen-map.draft.md SCREENS block into lib/storyboard.py, fill gate/verify, confirm
+# shell_source already points at the finalized shell; the screen-map + cards are produced above.
 ```
 
 ## What maps to what (checked against shell-sync's code)
@@ -43,14 +49,18 @@ required when `shared_repos` is set; `product_url` must be http), so it fails he
 instead of failing inside shell-sync.
 
 ## The one real structural gap to know
-shell-sync boards **multiple screens** hidden behind `<sc-if>` gates in a single Claude Design shell.
-This skill currently captures a **single surface** (e.g. LCA's Tests page). So:
-- The captured shell is a valid shell-sync input, but only its one screen is "real"; the screen-map
-  draft's other entries are nav stubs until you capture those screens too.
-- To make a full multi-screen board, re-run `capture-shell.md` for each key screen and combine them
-  (gated), or let shell-sync's own live capture fill the rest over time.
-This is the honest boundary between "one high-fidelity surface" (this skill's strength) and "a full
-gated multi-screen shell" (what shell-sync ultimately wants).
+Two things that used to be gaps are now closed by the handoff above:
+- **Multi-screen** — this skill captures *every* major screen (`capture-multiscreen.md`), not one
+  surface, so the screen-map's entries are all real, not stubs.
+- **Screenshots + cards** — `handoff-to-sync.mjs` drives shell-sync's own camera on our plain-HTML
+  shell and emits the `@dsCard` gallery. No manual paste, no format conversion.
+
+The **remaining** seam is deep-parse only: shell-sync's weekly diff *brain* (`index.py`/`match.py`)
+and `storyboard.py`'s component scanner read Claude Design **`x-dc`** shells (`<sc-if>` gated,
+computed styles), which our plain-HTML "photo" is not. So the camera and cards work on our shell, but
+the automated "which component changed since last drop" reasoning still needs an `x-dc` export. That
+boundary is inherent to keeping two shell formats; closing it would mean an `x-dc` emitter (a separate
+project), not a bug to paper over here.
 
 ## Division of labour (no overlap)
 | Concern | This skill | shell-sync |
