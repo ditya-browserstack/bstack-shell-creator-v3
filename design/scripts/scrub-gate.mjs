@@ -33,6 +33,13 @@ const RULES = [
     name: 'entity-url', // a real host + a path that encodes a specific project/id/name
     re: /https?:\/\/[^\s"'<>]+/gi,
     bad: (m) => !ALLOW_HOSTS.some((h) => m.includes(h)) && DATA_PATH.test(m)
+  },
+  {
+    // record attribution: "updated by Malvika Chaudhary", "created by Firstname Lastname".
+    // High signal that a record-bearing region (a table row) got captured — it shouldn't be.
+    name: 'attributed-name',
+    re: /\b(updated|created|modified|owned|shared|added|last edited)\s+by\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/gi,
+    bad: () => true
   }
 ];
 

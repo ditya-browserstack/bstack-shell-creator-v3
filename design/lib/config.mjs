@@ -12,6 +12,16 @@ export function validateProductConfig(obj) {
     errors.push('missing required field: chrome.activeNav');
   if (obj?.designSystem === 'custom' && !obj?.customSource)
     errors.push('designSystem "custom" requires customSource (path to the product\'s own tier map)');
+  // truth check, not just shape: reject leftover placeholders in any string value
+  const PLACEHOLDER = /TBD|REPLACE|inspect-live|<[^>]*>|your-|example-slug/i;
+  const scan = (o, path = '') => {
+    for (const [k, v] of Object.entries(o || {})) {
+      if (typeof v === 'string' && PLACEHOLDER.test(v))
+        errors.push(`placeholder left in ${path}${k}: "${v}" — fill it with a real value`);
+      else if (v && typeof v === 'object' && !Array.isArray(v)) scan(v, `${path}${k}.`);
+    }
+  };
+  scan(obj);
   return { ok: errors.length === 0, errors };
 }
 

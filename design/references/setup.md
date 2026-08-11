@@ -11,7 +11,7 @@ Claude Code. Everyday USE does not.
 ## Step 1 — Fill and validate the config
 Follow `references/config-guide.md`. Create `products/<slug>/product.config.json`, then validate:
 ```bash
-cd ~/projects/lcnc-workspace/lcnc-backend/workspace/skills/bs-design-from-tb
+cd ~/.claude/skills/bstack-design-studio/design   # the installed skill's design/ folder
 node -e "import('./lib/config.mjs').then(m=>{m.loadProductConfig('<slug>',{skillRoot:process.cwd()});console.log('config ok')})"
 ```
 Fill `chrome.topbar`/`chrome.sidebar`/`chrome.contentSlot` by inspecting `liveUrl` in the browser.

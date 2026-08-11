@@ -1,6 +1,6 @@
 # Attribution
 
-`bs-design-studio` combines two skills into one self-contained bundle.
+`bstack-design-studio` combines two skills into one self-contained bundle.
 
 ## `sync/` — forked from **shell-sync**, by **Harsh Kothari** (vishant/harsh, BrowserStack Design)
 - Everything under `sync/` is Harsh Kothari's `shell-sync` skill, **copied verbatim** from

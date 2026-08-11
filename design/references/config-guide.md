@@ -37,7 +37,7 @@ top bar and sidebar to get their selectors. Fill `chrome.topbar` / `chrome.sideb
 ## Validate before continuing
 
 ```bash
-cd ~/projects/lcnc-workspace/lcnc-backend/workspace/skills/bs-design-from-tb
+cd ~/.claude/skills/bstack-design-studio/design   # the installed skill's design/ folder
 node -e "import('./lib/config.mjs').then(m=>{m.loadProductConfig('<slug>',{skillRoot:process.cwd()});console.log('config ok')})"
 ```
 

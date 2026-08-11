@@ -16,10 +16,13 @@
       "required": ["activeNav"],
       "additionalProperties": false,
       "properties": {
-        "topbar":      { "type": "string" },
-        "sidebar":     { "type": "string" },
+        "appRoot":     { "type": "string", "description": "PREFERRED: selector of the app's outermost container to clone whole (e.g. #lcnc-dashboard). Captures ALL chrome — every rail/bar — with the app's own layout, no reassembly guesswork." },
+        "dataRegion":  { "type": "string", "description": "Selector of the record-bearing region inside appRoot to PRUNE and replace with the empty content slot (e.g. the test-list table). Excluding it by construction keeps customer records out of the capture." },
+        "topbar":      { "type": "string", "description": "Legacy/fallback: top bar selector (only used if appRoot is absent)." },
+        "sidebar":     { "type": "string", "description": "Legacy/fallback: sidebar selector." },
+        "regions":     { "type": "array", "items": { "type": "string" }, "description": "Any additional chrome regions to keep (e.g. a product rail) when NOT using appRoot." },
         "activeNav":   { "type": "string", "minLength": 1 },
-        "contentSlot": { "type": "string", "description": "CSS class/selector of the shell's empty content region where explorations mount (e.g. .lca-main-slot). Used by the assembler." }
+        "contentSlot": { "type": "string", "description": "CSS class of the empty content region where explorations mount (e.g. lca-main-slot). Used by the assembler." }
       }
     },
     "vocabulary": { "type": "array", "items": { "type": "string" } },
