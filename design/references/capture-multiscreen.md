@@ -10,6 +10,23 @@ nav, every item inside collapsible sidebar groups, *and* at least one representa
 list (the page you reach by clicking a row). A shell that only has Tests/Settings is L1; a faithful
 shell has the whole left rail plus the drill-ins.
 
+## Which source per page: LIVE prod vs LOCAL seed (a PII decision, learned the hard way)
+Not every page is safe to capture from **live production**. Two classes of page:
+- **List/record pages** (Tests, Suites, Builds, Modules, Settings): safe from live prod. Their only PII
+  is author names in a *known, patterned* place — the scrub in step 4b handles it.
+- **Config/admin pages** (Secrets, Global variables, Databases, Test datasets, Integrations, team/user
+  admin): a **PII minefield from live prod.** They are saturated with user-authored strings the gate
+  **cannot** catch — teammate usernames in "created by" columns (`firstlast_XXXXXX`), people's names
+  baked into secret/connection labels (`Finstack_Password_Nitesh`), environment tabs named after people
+  (`manoj_test1`). These are 100–200-row lists, so you cannot eyeball them clean, and the markup is too
+  varied to scrub by regex. Capturing these from prod **will** leak names.
+
+**Rule: capture config/admin pages from a LOCAL instance seeded with fake data, not from prod.** Local
+seed data has no real people in it, so those pages are safe to capture and share. Use live prod for the
+list/record pages, local for the config/admin pages, and stitch both into one shell — "both sources,
+per-page." If no local instance is available, either omit the config pages or mark the shell
+**internal-only — do not share** and scrub best-effort.
+
 Same discipline as single capture (`capture-shell.md`): live-DOM, reflect form state, **keep the rows
 but scrub the data**, gate. The difference is you capture the **chrome once** and each screen's
 **content region**, then loop over the full screen list.
@@ -78,7 +95,11 @@ let html=src.outerHTML
   .replace(/\bby\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\s+on\b/g,'by Sample User on')
   // customer URLs + bare hostnames (incl. trailing paths) -> example.com; keep browserstack/example/CDNs
   .replace(/https?:\/\/(?!(?:[a-z0-9-]+\.)*(?:browserstack\.com|example\.com))[a-z0-9.-]+[^\s"'<>]*/gi,'https://example.com')
-  .replace(/\b(?!(?:www\.)?(?:browserstack|example|w3|gstatic|googleapis|schema)\.)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi,'example.com');
+  .replace(/\b(?!(?:www\.)?(?:browserstack|example|w3|gstatic|googleapis|schema)\.)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi,'example.com')
+  // standalone emails (real on config pages as VALUES) -> fake; keep already-safe example.*
+  .replace(/[a-zA-Z0-9._%+-]+@(?!example\.(?:com|org|net))[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'user@example.com')
+  // BrowserStack usernames in "created by" columns (firstlast_XXXXXX) -> fake
+  .replace(/\b[a-z][a-z0-9]*_[A-Za-z0-9]{6}\b/g,'teammate_ab12cd');
 download('<slug>.html', html);
 ```
 Test/suite/build **titles** (e.g. "Login flow") are not personal data — keep them; they make the page
@@ -128,6 +149,9 @@ or a leaked name the regexes missed.
 - **Detail pages can be partial** → heavily-interactive drill-ins (a step editor, a live run) may not
   hold their full multi-column state in a static snapshot. Capture the most representative state; if a
   detail page renders thin/truncated, note it rather than shipping it as if faithful.
+- **Some pages render as a bare spinner** → a page whose content is gated behind a JS-driven loading
+  overlay (LCA's Integrations) captures DOM but paints only the spinner statically. Render it after
+  stitching; if it's a spinner, remove the frozen loading overlay before capture or omit the page.
 - **Duplicated sidebar** → the assembler prunes leaked chrome; verify only ONE sidebar renders.
 - **Third-party widget URLs** (Beamer, intercom) may trip the gate → allowlist with `--allow` or
   neutralize; not PII.
