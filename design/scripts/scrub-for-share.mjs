@@ -38,8 +38,9 @@ function scrub(html) {
   return html
     // author name in the <span> right after "... by </span>"  (tests-style markup)
     .replace(/((?:updated|created|modified|shared|added|last edited) by\s*<\/span>\s*<span[^>]*>)[^<]{1,80}(<\/span>)/gi, '$1Sample User$2')
-    // "by Firstname Lastname on <date>"  (suites/builds-style markup)
-    .replace(/\bby\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\s+on\b/g, 'by Sample User on')
+    // "by <Name> on <date>"  (suites/builds-style markup). Allow internal capitals (AbdulQadir),
+    // apostrophes/dots/hyphens, and 1–4 name tokens — compound names slipped a stricter pattern.
+    .replace(/\bby\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+on\b/g, 'by Sample User on')
     // customer URLs + bare hostnames -> example.com; keep browserstack/example/CDNs
     .replace(/https?:\/\/(?!(?:[a-z0-9-]+\.)*(?:browserstack\.com|example\.com))[a-z0-9.-]+[^\s"'<>]*/gi, 'https://example.com')
     .replace(/\b(?!(?:www\.)?(?:browserstack|example|w3|gstatic|googleapis|schema)\.)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi, 'example.com')
