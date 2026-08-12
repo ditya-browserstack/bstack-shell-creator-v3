@@ -34,6 +34,7 @@ Reference files are read **when you reach that step, not upfront.**
 | Freshness / manifest gaps | `references/freshness.md` |
 | SETUP (all steps) | `references/setup.md` |
 | SETUP: config fields | `references/config-guide.md` |
+| SETUP: ASK which source (live / localhost / repo) — do first | `references/capture-sources.md` |
 | SETUP: capture the real shell (primary) | `references/capture-shell.md` |
 | SETUP: capture ALL major pages (multi-screen) | `references/capture-multiscreen.md` |
 | SETUP: reconstruct shell if no live app (fallback) | `references/capture-app.md` |
@@ -73,11 +74,14 @@ The product has no shell yet, or it's stale. Build it. Full steps in `references
 2. **Component sheet = the shared core** — reuse `core/designstack-sheet.html` (mirror it into the
    product). A designstack product does **not** capture its own sheet. (`custom` → capture its own
    primitives with `capture-storybook.mjs --product <slug>`.)
-3. **Capture the real shell** — live-DOM from the running product (`references/capture-shell.md`).
-   This is the product's identity; there is no separate "Tier 5–6 composites in the sheet" step.
-4. **Finalize + scrub gate (hard stop):** `finalize-shell.mjs` (self-contain + slot) then
-   `scrub-gate.mjs` must exit 0. **Never commit a shell that fails the gate.**
-5. **Look at it in Chrome** — a green "captured" ≠ the right capture.
+3. **Ask which source(s) the user has** — live/prod URL, localhost, and/or the repo
+   (`references/capture-sources.md`). Route each page to the safest: list pages from live, config/admin
+   pages from a local seeded instance (prod leaks real names there). Don't assume a source.
+4. **Capture the real shell** — multi-screen, from the chosen source(s) (`references/capture-multiscreen.md`;
+   single-screen fallback `capture-shell.md`). This is the product's identity.
+5. **Finalize + scrub gate (hard stop):** gate every captured page; `scrub-gate.mjs` must exit 0.
+   **Never commit a shell that fails the gate.**
+6. **Look at it in Chrome** — a green "captured" ≠ the right capture.
 
 Never start SETUP silently mid-USE. Offer it and wait.
 

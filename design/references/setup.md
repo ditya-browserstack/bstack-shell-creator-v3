@@ -28,6 +28,11 @@ Fill `chrome.topbar`/`chrome.sidebar`/`chrome.contentSlot` by inspecting `liveUr
 - `designSystem: "custom"` → capture the product's own primitives: `capture-storybook.mjs --product <slug>`.
 
 ## Step 3 — Capture the real shell (the product's identity) — ALL major screens
+**First, ASK the user what source(s) they can provide** — a live/prod URL, a localhost instance, and/or
+the repo — and route each page to the safest one (`references/capture-sources.md`). Do not assume a
+source: prod is fine for list pages but leaks real names on config/admin pages, which must come from a
+local seeded instance. Capture "both sources, per-page" when the user gives more than one.
+
 **This is the important step, and it is multi-screen by default.** A one-screen shell is L1 and reads
 as unfinished. Follow `references/capture-multiscreen.md` — live-DOM capture from the running product
 via Claude-in-Chrome that **discovers and captures every screen**: top-level nav, every item inside

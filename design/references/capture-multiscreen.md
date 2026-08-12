@@ -10,6 +10,11 @@ nav, every item inside collapsible sidebar groups, *and* at least one representa
 list (the page you reach by clicking a row). A shell that only has Tests/Settings is L1; a faithful
 shell has the whole left rail plus the drill-ins.
 
+## Step 0 — ASK the user for a source (don't assume one)
+Before capturing anything, ask what the user can provide — a live/prod URL, a localhost instance, and/or
+the repo — and route each page to the safest source. Full prompt + decision table in
+`references/capture-sources.md`. The short version follows.
+
 ## Which source per page: LIVE prod vs LOCAL seed (a PII decision, learned the hard way)
 Not every page is safe to capture from **live production**. Two classes of page:
 - **List/record pages** (Tests, Suites, Builds, Modules, Settings): safe from live prod. Their only PII
