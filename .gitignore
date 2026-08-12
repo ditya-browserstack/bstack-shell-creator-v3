@@ -1,3 +1,8 @@
 # generated handoff artifacts (regenerable via handoff-to-sync.mjs)
 design/products/*/app-shell/shots/
 design/products/*/app-shell/cards/
+
+# macOS + temp gallery
+.DS_Store
+**/.DS_Store
+design/products/*/app-shell/cards-gallery.html
