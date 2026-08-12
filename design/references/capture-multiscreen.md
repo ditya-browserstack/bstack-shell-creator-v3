@@ -158,6 +158,6 @@ local seeded instance — see `capture-sources.md`).
 - **Some pages render as a bare spinner** → a page whose content is gated behind a JS-driven loading
   overlay (LCA's Integrations) captures DOM but paints only the spinner statically. Render it after
   stitching; if it's a spinner, remove the frozen loading overlay before capture or omit the page.
-- **Duplicated sidebar** → the assembler prunes leaked chrome; verify only ONE sidebar renders.
+- **Duplicated sidebar vs the product-nav** → the product-nav sidebar lives INSIDE the content region and shares `fixed inset-y-0` with the chrome icon-rail. The assembler now prunes only panel elements whose fingerprint (aria-label/id/class) matches something already in the chrome, so the product-nav is kept and real leaked chrome is removed. If the nav vanishes, the fingerprint missed — check the prune in assemble-multiscreen.mjs.
 - **Third-party widget URLs** (Beamer, intercom) may trip the gate → allowlist with `--allow` or
   neutralize; not PII.

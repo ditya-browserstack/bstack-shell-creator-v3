@@ -110,9 +110,17 @@ if (pw) {
   const page = await browser.newPage();
   await page.goto(pathToFileURL(out).href, { waitUntil: 'load' });
   const removed = await page.evaluate(() => {
+    // Prune only chrome that DUPLICATES the real chrome — never the product-nav sidebar, which
+    // legitimately lives inside the content region (it shares `fixed inset-y-0` with the icon rail).
+    // Fingerprint every chrome-ish element that sits OUTSIDE the panels (= genuine chrome); then
+    // inside panels remove only elements whose fingerprint matches one of those.
+    const SEL = '#lcnc-bstack-header, nav.fixed, [class*="inset-y-0"], [id*="sidenav"], [class*="left-0"][class*="z-300"]';
+    const key = (el) => (el.getAttribute('aria-label') || el.id || (el.className || '').toString().slice(0, 60)).trim();
+    const chromeKeys = new Set();
+    document.querySelectorAll(SEL).forEach((el) => { if (!el.closest('.ms-panel')) chromeKeys.add(key(el)); });
     let n = 0;
     document.querySelectorAll('.ms-panel').forEach((panel) => {
-      panel.querySelectorAll('#lcnc-bstack-header, nav.fixed, [class*="inset-y-0"], [id*="sidenav"], [class*="left-0"][class*="z-300"]').forEach((el) => { el.remove(); n++; });
+      panel.querySelectorAll(SEL).forEach((el) => { if (chromeKeys.has(key(el))) { el.remove(); n++; } });
     });
     return n;
   });
