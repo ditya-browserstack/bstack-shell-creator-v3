@@ -42,6 +42,9 @@ const detailMap = {};
 for (const s of screens) if (s.detailFor) detailMap[s.detailFor] = s.slug;
 let chrome = readFileSync(join(dir, 'chrome.html'), 'utf8');
 if (!chrome.includes('id="screen-mount"')) { console.error('chrome.html has no <div id="screen-mount">'); process.exit(1); }
+// SCALABLE responsiveness: a snapshot has no viewport meta, so the browser assumes a fixed desktop
+// width and the app's own Tailwind breakpoints never fire. Add the meta once so they do.
+if (!/name=["']viewport["']/i.test(chrome)) chrome = chrome.replace(/<head([^>]*)>/i, '<head$1><meta name="viewport" content="width=device-width, initial-scale=1">');
 
 const panels = screens.map((s, i) =>
   `<div class="ms-panel" data-screen="${s.slug}"${i ? ' hidden' : ''}>${readFileSync(join(dir, `${s.slug}.html`), 'utf8')}</div>`
@@ -49,7 +52,14 @@ const panels = screens.map((s, i) =>
 chrome = chrome.replace(/<div id="screen-mount"><\/div>/, `<div id="screen-mount">${panels}</div>`);
 
 const script = `
-<style>.ms-panel[hidden]{display:none!important}</style>
+<style>.ms-panel[hidden]{display:none!important}
+/* SCALABLE responsive normalization (product-agnostic, all screens): fit the display and scroll
+   genuinely-wide content instead of cropping the page. The app's own breakpoints do the real work. */
+html,body{max-width:100vw!important}
+body{overflow-x:hidden!important}
+#screen-mount,.ms-panel{width:100%!important;max-width:100%!important;overflow-x:auto}
+.ms-panel img,.ms-panel svg,.ms-panel video{max-width:100%;height:auto}
+.ms-panel table,.ms-panel pre{max-width:100%}</style>
 <script>(function(){
   var SLUGS=${JSON.stringify(screens.map((s) => s.slug))};
   var DETAIL=${JSON.stringify(detailMap)};   // { section-slug : detail-screen-slug }
