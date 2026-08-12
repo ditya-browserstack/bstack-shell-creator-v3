@@ -48,16 +48,17 @@ sidebar, or when you genuinely only need one surface).
 There is **no separate "Tier 5–6 composites in the sheet" step** — the product's composed surfaces
 live in these captured screens, not as sheet blocks.
 
-## Step 4 — Finalize + scrub gate (hard stop)
+## Step 4 — Assemble → self-check → share (in that order)
 ```bash
-node scripts/assemble-multiscreen.mjs --slug <slug>
-node scripts/scrub-gate.mjs products/<slug>/app-shell/screens/*.html \
-     products/<slug>/app-shell/multiscreen-shell.html   # MUST exit 0 on ALL of them
+node scripts/assemble-multiscreen.mjs --slug <slug>   # RAW working shell (real data, local)
+node scripts/self-check.mjs           --slug <slug>   # FIDELITY GATE — must exit 0
+node scripts/scrub-for-share.mjs      --slug <slug>   # -> share/ (scrubbed + PII gate) — the only shareable copy
 ```
-The assembler stitches the screens, wires the switcher (nav + `detailFor` detail routes), and prunes
-chrome that leaked into a panel; the gate re-scans every screen **and** the assembled shell. Do
-**not** commit a shell that fails the gate. (Single-screen fallback: `finalize-shell.mjs` +
-gate on `shell-scaffold.html`.)
+The assembler stitches the screens and wires the switcher (nav + `detailFor` routes). **self-check** is
+the fidelity gate: it structurally checks every screen (blank / spinner / missing topbar / missing
+sidebar / truncated), screenshots each panel, and pairs them against the prod references in
+`self-check/compare.html`. Fix any FAIL and re-assemble until green — *then* build the share copy.
+Capture stays RAW; scrubbing happens only in `scrub-for-share`. Never share a raw shell.
 
 ## Step 5 — Look at EVERY screen (mandatory)
 ```bash

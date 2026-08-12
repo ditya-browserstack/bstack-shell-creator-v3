@@ -11,3 +11,6 @@ design/products/*/app-shell/cards-gallery.html
 # The clean _reference-lca example is exempt so the skill ships a working demo.
 design/products/*/app-shell/multiscreen-shell.html
 !design/products/_reference-lca/app-shell/multiscreen-shell.html
+
+# self-check artifacts (screenshots + prod refs — regenerable, may hold real data)
+design/products/*/app-shell/self-check/

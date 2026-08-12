@@ -97,6 +97,9 @@ outerHTML as-is (raw):
 const src=document.querySelector('#app-main-content')||document.querySelector('#webapp-content');
 download('<slug>.html', src.outerHTML);   // RAW. All name/email/URL scrubbing runs at share-time.
 ```
+**While you're on each live screen, also take a full-page screenshot** and save it as
+`products/<slug>/app-shell/self-check/prod/<slug>.png`. The self-check (step 6) diffs the assembled
+shell against these prod references — no reference, no visual diff.
 The scrub rules (author names, emails, `firstlast_XXXXXX` usernames, customer URLs/domains) all live in
 one place now — `scripts/scrub-for-share.mjs` — and run in step 6 when you build the shareable copy.
 Titles (e.g. "Login flow") are never touched; only names/emails/customer domains get replaced there.
@@ -127,9 +130,25 @@ The assembler injects each screen as a panel, wires the sidebar to switch (top-l
 current screen, and **prunes any chrome that leaked into a panel**. This shell has **real data** — it's
 your local working copy. Do not commit/share it (it's gitignored).
 
-## 6. Build the SHAREABLE copy at share-time (scrub + GATE)
-Before anything leaves your machine — Confluence, the `.skill` bundle, a review hand-off — build the
-scrubbed copy. This is the **only** version you commit, bundle, upload, or share:
+## 6. SELF-CHECK the raw shell — the fidelity gate (before any share)
+Verify every screen actually rendered like prod **before** you build the shareable copy. This catches
+the real failures this skill has hit — a pruned nav bar, a blank panel, a spinner-only page, a
+truncated column:
+```bash
+node scripts/self-check.mjs --slug <slug>          # MUST exit 0
+```
+It runs automated structural gates per screen (BLANK · SPINNER · NO_TOPBAR · NO_SIDEBAR · TRUNCATED),
+screenshots each panel, and — using the `self-check/prod/*.png` references from step 4 — writes
+`self-check/compare.html` pairing **PROD ↔ SHELL** per screen.
+1. If any screen **FAILS**, fix it and re-assemble until green: re-capture the screen, adjust the
+   prune (`assemble-multiscreen.mjs`), strip a stuck loading overlay, or widen the container.
+2. Open `compare.html` and eyeball every pair — a DOM gate can't judge layout fidelity; your eyes
+   catch subtler drift (wrong spacing, missing section, misaligned columns). Fix those too.
+Only when self-check is green **and** the pairs look faithful do you move on.
+
+## 7. Build the SHAREABLE copy at share-time (scrub + GATE)
+Now — and only now — build the scrubbed copy. This is the **only** version you commit, bundle, upload,
+or share:
 ```bash
 node scripts/scrub-for-share.mjs --slug <slug>          # -> app-shell/share/multiscreen-shell.html
 ```
@@ -137,11 +156,10 @@ It scrubs every screen (author names, emails, `firstlast_XXXXXX` usernames, cust
 re-assembles the shell from the scrubbed screens, and runs `scrub-gate` on the result — a **hard stop**
 if any PII remains. If it fails, add the offending markup to `scrub-for-share.mjs` and re-run.
 
-## 7. Look at EVERY screen (mandatory)
-Open both shells and click through the whole sidebar, including collapsed-group items and detail pages.
-On the **share** build especially: a green gate is not proof — only your eyes catch a blank list, a
-truncated header, or a name the regexes missed (config pages are worst; prefer capturing those from a
-local seeded instance — see `capture-sources.md`).
+## 8. Final look (mandatory)
+Open the **share** build and click through the whole sidebar. Self-check validated the raw shell's
+layout; here confirm the scrub didn't break anything and no real name slipped through (config pages are
+worst; prefer capturing those from a local seeded instance — see `capture-sources.md`).
 
 ## Gotchas the live run surfaced (don't relearn them)
 - **Screens hide in collapsed groups** → expand every group before the step-1 dump, or you ship an L1
