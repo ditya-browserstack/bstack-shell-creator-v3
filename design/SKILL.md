@@ -36,7 +36,8 @@ Reference files are read **when you reach that step, not upfront.**
 | SETUP: config fields | `references/config-guide.md` |
 | SETUP: ASK which source (live / localhost / repo) — do first | `references/capture-sources.md` |
 | SETUP: capture the real shell (primary) | `references/capture-shell.md` |
-| SETUP: capture ALL major pages (multi-screen) | `references/capture-multiscreen.md` |
+| SETUP: capture ALL major pages (multi-screen, RAW) | `references/capture-multiscreen.md` |
+| SHARE: scrub the raw shell for sharing (hard gate) | run `scripts/scrub-for-share.mjs --slug <slug>` |
 | SETUP: reconstruct shell if no live app (fallback) | `references/capture-app.md` |
 | SETUP: sheet shape + how to check | `references/sheet-structure.md` |
 | USE: mount explorations in the real shell (one tab + switcher) | `references/mount-switcher.md` |
@@ -79,9 +80,11 @@ The product has no shell yet, or it's stale. Build it. Full steps in `references
    pages from a local seeded instance (prod leaks real names there). Don't assume a source.
 4. **Capture the real shell** — multi-screen, from the chosen source(s) (`references/capture-multiscreen.md`;
    single-screen fallback `capture-shell.md`). This is the product's identity.
-5. **Finalize + scrub gate (hard stop):** gate every captured page; `scrub-gate.mjs` must exit 0.
-   **Never commit a shell that fails the gate.**
-6. **Look at it in Chrome** — a green "captured" ≠ the right capture.
+5. **Capture stays RAW; scrub only at share-time.** The working shell has real data (best for
+   designing) and is gitignored. Before it leaves your machine — Confluence, the bundle, review —
+   run `scripts/scrub-for-share.mjs --slug <slug>` to produce the gated `app-shell/share/` build.
+   That share build is the **only** thing you commit, bundle, upload, or hand off. Never share a raw shell.
+6. **Look at it in Chrome** — a green "captured" ≠ the right capture (check the share build too).
 
 Never start SETUP silently mid-USE. Offer it and wait.
 

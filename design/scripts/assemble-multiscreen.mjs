@@ -25,10 +25,13 @@ import { homedir } from 'node:os';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL = resolve(HERE, '..');
-const slug = process.argv.includes('--slug') ? process.argv[process.argv.indexOf('--slug') + 1] : null;
+const arg = (f) => process.argv.includes(f) ? process.argv[process.argv.indexOf(f) + 1] : null;
+const slug = arg('--slug');
 if (!slug) { console.error('assemble-multiscreen: --slug <slug> required'); process.exit(1); }
-const dir = join(SKILL, 'products', slug, 'app-shell', 'screens');
+// --screens-dir / --out let the share build (scrub-for-share.mjs) assemble a scrubbed copy elsewhere
+const dir = arg('--screens-dir') || join(SKILL, 'products', slug, 'app-shell', 'screens');
 if (!existsSync(dir)) { console.error(`no screens dir: ${dir} — capture screens first (see capture-multiscreen.md)`); process.exit(1); }
+const outArg = arg('--out');
 
 const screens = JSON.parse(readFileSync(join(dir, 'screens.json'), 'utf8'));
 // detail-route wiring is DATA-DRIVEN: any screen with "detailFor":"<section>" claims the
@@ -81,7 +84,7 @@ const script = `
 })();</script>`;
 chrome = chrome.replace('</body>', script + '</body>');
 
-const out = join(SKILL, 'products', slug, 'app-shell', 'multiscreen-shell.html');
+const out = outArg || join(SKILL, 'products', slug, 'app-shell', 'multiscreen-shell.html');
 writeFileSync(out, chrome, 'utf8');
 
 // prune chrome that leaked INTO panels (headless DOM pass) + re-serialize

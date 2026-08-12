@@ -34,9 +34,13 @@ const slug = argv.includes('--slug') ? argv[argv.indexOf('--slug') + 1] : null;
 const noShots = argv.includes('--no-shots');
 if (!slug) { console.error('handoff-to-sync: --slug <slug> required'); process.exit(1); }
 
+// Prefer the SHARE build — cards feed Claude Design (a shared surface), so they must be scrubbed.
+// Fall back to the raw working set only with a loud warning (cards would carry real data).
 const appShell = join(SKILL, 'products', slug, 'app-shell');
-const dir = join(appShell, 'screens');
-const shell = join(appShell, 'multiscreen-shell.html');
+const shareBuilt = existsSync(join(appShell, 'share', 'multiscreen-shell.html'));
+const dir = shareBuilt ? join(appShell, 'share', 'screens') : join(appShell, 'screens');
+const shell = shareBuilt ? join(appShell, 'share', 'multiscreen-shell.html') : join(appShell, 'multiscreen-shell.html');
+if (!shareBuilt) console.warn('handoff-to-sync: no share/ build — using the RAW shell. Cards will contain real data; run scrub-for-share.mjs first before sharing them.');
 if (!existsSync(dir)) { console.error(`no screens dir: ${dir} — run the multi-screen capture first`); process.exit(1); }
 const screens = JSON.parse(readFileSync(join(dir, 'screens.json'), 'utf8'));
 

@@ -72,12 +72,14 @@ const body=document.body.cloneNode(true);
 const cc=body.querySelector('#app-main-content')||body.querySelector('#webapp-content');
 const mount=document.createElement('div'); mount.id='screen-mount'; if(cc) cc.replaceWith(mount);
 body.querySelectorAll('script,[data-headlessui-portal],#storybook-highlights-root').forEach(n=>n.remove());
-const doc=scrub(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${body.innerHTML}</body></html>`);
-download('chrome.html', doc);
+const doc=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>${body.innerHTML}</body></html>`;
+download('chrome.html', doc);   // RAW — real data. Scrubbing happens at share-time (scrub-for-share.mjs).
 ```
 
-## 4. Capture each screen's content (navigate + WAIT FOR DATA + scrub)
-Loop over **every** route from step 1. Two rules that came straight from the live run:
+## 4. Capture each screen's content (navigate + WAIT FOR DATA) — RAW
+Capture is **raw**: real data, no masking. That's the working shell you design in, and it's kept local
+(gitignored) — scrubbing happens once, at **share-time** (`scrub-for-share.mjs`, step 6). Loop over
+**every** route from step 1. Two rules that came straight from the live run:
 
 **(a) WAIT for the async list before capturing.** These are SPA pages; capturing too early gives a
 blank shell (LCA suites/builds shipped empty for exactly this reason). Navigate, then poll until the
@@ -89,29 +91,18 @@ await new Promise(res=>{const t=Date.now();(function p(){
   if(n>3||Date.now()-t>10000) return res(); setTimeout(p,300);})();});
 ```
 
-**(b) KEEP the rows — a blank list is not the product.** Do NOT prune the records; **scrub the data
-inside them** so the page stays full but carries no real people or customers:
+**(b) KEEP the rows — a blank list is not the product.** Do NOT prune the records; save the region's
+outerHTML as-is (raw):
 ```js
 const src=document.querySelector('#app-main-content')||document.querySelector('#webapp-content');
-let html=src.outerHTML
-  // author name is the <span> right after "... by </span>": replace just that span's text
-  .replace(/((?:updated|created|modified|shared|added|last edited) by\s*<\/span>\s*<span[^>]*>)[^<]{1,80}(<\/span>)/gi,'$1Sample User$2')
-  // second author markup (real on LCA suites/builds): "<div>by Firstname Lastname on Aug 11 …</div>"
-  .replace(/\bby\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\s+on\b/g,'by Sample User on')
-  // customer URLs + bare hostnames (incl. trailing paths) -> example.com; keep browserstack/example/CDNs
-  .replace(/https?:\/\/(?!(?:[a-z0-9-]+\.)*(?:browserstack\.com|example\.com))[a-z0-9.-]+[^\s"'<>]*/gi,'https://example.com')
-  .replace(/\b(?!(?:www\.)?(?:browserstack|example|w3|gstatic|googleapis|schema)\.)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi,'example.com')
-  // standalone emails (real on config pages as VALUES) -> fake; keep already-safe example.*
-  .replace(/[a-zA-Z0-9._%+-]+@(?!example\.(?:com|org|net))[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'user@example.com')
-  // BrowserStack usernames in "created by" columns (firstlast_XXXXXX) -> fake
-  .replace(/\b[a-z][a-z0-9]*_[A-Za-z0-9]{6}\b/g,'teammate_ab12cd');
-download('<slug>.html', html);
+download('<slug>.html', src.outerHTML);   // RAW. All name/email/URL scrubbing runs at share-time.
 ```
-Test/suite/build **titles** (e.g. "Login flow") are not personal data — keep them; they make the page
-realistic. Only names, emails, and customer domains get replaced.
+The scrub rules (author names, emails, `firstlast_XXXXXX` usernames, customer URLs/domains) all live in
+one place now — `scripts/scrub-for-share.mjs` — and run in step 6 when you build the shareable copy.
+Titles (e.g. "Login flow") are never touched; only names/emails/customer domains get replaced there.
 
-Save each into `products/<slug>/app-shell/screens/` plus a `screens.json` listing **every** screen in
-sidebar order:
+Save each into `products/<slug>/app-shell/screens/` (the **raw working set — gitignored**) plus a
+`screens.json` listing **every** screen in sidebar order:
 ```json
 [
   { "slug": "tests",       "label": "Tests" },
@@ -127,21 +118,30 @@ sidebar order:
 **row** (not a nav link) is a detail page: give it `"detailFor": "<section-slug>"`, and the assembler
 wires `/<section>/<id>` clicks to open it — no code change per product.
 
-## 5. Assemble + prune + wire the switcher + GATE
+## 5. Assemble the RAW working shell (design in this)
 ```bash
-node scripts/assemble-multiscreen.mjs --slug <slug>
-node scripts/scrub-gate.mjs products/<slug>/app-shell/screens/*.html \
-     products/<slug>/app-shell/multiscreen-shell.html    # MUST exit 0 on all of them
+node scripts/assemble-multiscreen.mjs --slug <slug>     # -> app-shell/multiscreen-shell.html (RAW)
 ```
 The assembler injects each screen as a panel, wires the sidebar to switch (top-level slugs **and**
 `detailFor` detail routes, data-driven from `screens.json`), sets the real active-nav classes on the
-current screen, and **prunes any chrome that leaked into a panel** (some routes' content wrapper
-wrongly includes the sidebar, which would render it twice).
+current screen, and **prunes any chrome that leaked into a panel**. This shell has **real data** — it's
+your local working copy. Do not commit/share it (it's gitignored).
 
-## 6. Look at EVERY screen (mandatory)
-Open the shell and click through the whole sidebar, including the collapsed-group items and the
-detail pages. A green gate is not fidelity — only your eyes catch a blank list, a truncated header,
-or a leaked name the regexes missed.
+## 6. Build the SHAREABLE copy at share-time (scrub + GATE)
+Before anything leaves your machine — Confluence, the `.skill` bundle, a review hand-off — build the
+scrubbed copy. This is the **only** version you commit, bundle, upload, or share:
+```bash
+node scripts/scrub-for-share.mjs --slug <slug>          # -> app-shell/share/multiscreen-shell.html
+```
+It scrubs every screen (author names, emails, `firstlast_XXXXXX` usernames, customer URLs/domains),
+re-assembles the shell from the scrubbed screens, and runs `scrub-gate` on the result — a **hard stop**
+if any PII remains. If it fails, add the offending markup to `scrub-for-share.mjs` and re-run.
+
+## 7. Look at EVERY screen (mandatory)
+Open both shells and click through the whole sidebar, including collapsed-group items and detail pages.
+On the **share** build especially: a green gate is not proof — only your eyes catch a blank list, a
+truncated header, or a name the regexes missed (config pages are worst; prefer capturing those from a
+local seeded instance — see `capture-sources.md`).
 
 ## Gotchas the live run surfaced (don't relearn them)
 - **Screens hide in collapsed groups** → expand every group before the step-1 dump, or you ship an L1
@@ -149,8 +149,9 @@ or a leaked name the regexes missed.
 - **Blank async lists** → always the wait-for-rows poll (step 4a), never a bare sleep.
 - **Content-wrapper id varies per route** → always use the fallback selector.
 - **Two different author markups** → tests use `<span>… by</span><span>Name</span>`; suites/builds use
-  `<div>by Name on <date></div>`. Both scrubs are in step 4b; the gate re-scans **tag-stripped text**
-  so a name split across tags can't slip through. If the gate flags a name, add its markup to 4b.
+  `<div>by Name on <date></div>`. Both scrubs live in `scrub-for-share.mjs`; the gate re-scans
+  **tag-stripped text** so a name split across tags can't slip through. If the share gate flags a name,
+  add its markup to `scrub-for-share.mjs` and re-run.
 - **Detail pages can be partial** → heavily-interactive drill-ins (a step editor, a live run) may not
   hold their full multi-column state in a static snapshot. Capture the most representative state; if a
   detail page renders thin/truncated, note it rather than shipping it as if faithful.

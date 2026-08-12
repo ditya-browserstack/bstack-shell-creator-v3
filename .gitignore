@@ -6,3 +6,8 @@ design/products/*/app-shell/cards/
 .DS_Store
 **/.DS_Store
 design/products/*/app-shell/cards-gallery.html
+
+# RAW working captures hold real data — never commit (share/ is the committed build).
+# The clean _reference-lca example is exempt so the skill ships a working demo.
+design/products/*/app-shell/multiscreen-shell.html
+!design/products/_reference-lca/app-shell/multiscreen-shell.html
