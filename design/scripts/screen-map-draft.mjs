@@ -33,9 +33,14 @@ const sidebarSel = (cfg.chrome && cfg.chrome.sidebar) || 'nav';
 const activeNav = (cfg.chrome && cfg.chrome.activeNav) || '';
 
 async function importPlaywright() {
+  // product-agnostic: PLAYWRIGHT_CORE env → local install → any npx cache. No hardcoded repo path.
+  if (process.env.PLAYWRIGHT_CORE) { try { return await import(pathToFileURL(process.env.PLAYWRIGHT_CORE).href); } catch {} }
   try { return await import('playwright-core'); } catch {}
-  for (const base of [process.cwd(), join(homedir(), 'projects/lcnc-workspace/frontend/packages/design-stack')]) {
+  const bases = [process.cwd()];
+  try { const npx = join(homedir(), '.npm/_npx'); for (const h of readdirSync(npx)) bases.push(join(npx, h, 'node_modules')); } catch {}
+  for (const base of bases) {
     try { const req = createRequire(join(base, 'package.json')); return await import(pathToFileURL(req.resolve('playwright-core')).href); } catch {}
+    try { const p = join(base, 'playwright-core', 'index.mjs'); if (existsSync(p)) return await import(pathToFileURL(p).href); } catch {}
   }
   return null;
 }

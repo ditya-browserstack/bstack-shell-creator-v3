@@ -108,19 +108,14 @@ function findChromium() {
  * against the wrong tree. Resolve it from the cwd instead.
  */
 async function importPlaywright() {
-  try {
-    return await import('playwright-core');
-  } catch {
-    /* not next to the script; try the cwd's tree */
-  }
-  const candidates = [process.cwd(), join(homedir(), 'projects/lcnc-workspace/frontend/packages/design-stack')];
-  for (const base of candidates) {
-    try {
-      const req = createRequire(join(base, 'package.json'));
-      return await import(pathToFileURL(req.resolve('playwright-core')).href);
-    } catch {
-      /* try next */
-    }
+  // product-agnostic: PLAYWRIGHT_CORE env → local install → cwd / DESIGNSTACK_PATH → any npx cache.
+  if (process.env.PLAYWRIGHT_CORE) { try { return await import(pathToFileURL(process.env.PLAYWRIGHT_CORE).href); } catch {} }
+  try { return await import('playwright-core'); } catch { /* not next to the script; try other trees */ }
+  const bases = [process.cwd(), process.env.DESIGNSTACK_PATH].filter(Boolean);
+  try { const npx = join(homedir(), '.npm/_npx'); for (const h of readdirSync(npx)) bases.push(join(npx, h, 'node_modules')); } catch {}
+  for (const base of bases) {
+    try { const req = createRequire(join(base, 'package.json')); return await import(pathToFileURL(req.resolve('playwright-core')).href); } catch { /* next */ }
+    try { const p = join(base, 'playwright-core', 'index.mjs'); if (existsSync(p)) return await import(pathToFileURL(p).href); } catch { /* next */ }
   }
   return null;
 }
@@ -129,9 +124,10 @@ async function launch() {
   const pw = await importPlaywright();
   if (!pw) {
     fail(
-      'Could not resolve playwright-core from either the script directory or the cwd.\n' +
-        '         It ships with design-stack, so run with that as the cwd:\n' +
-        '           cd ~/projects/lcnc-workspace/frontend/packages/design-stack'
+      'Could not resolve playwright-core.\n' +
+        '         Run from a tree that has it (your DesignStack checkout ships it), or point at it:\n' +
+        '           PLAYWRIGHT_CORE=/abs/path/to/playwright-core/index.mjs node scripts/capture-storybook.mjs …\n' +
+        '           # or: DESIGNSTACK_PATH=~/<your-frontend>/packages/design-stack'
     );
   }
   const chromium = pw.chromium ?? pw.default?.chromium;
@@ -280,7 +276,7 @@ for (const b of present) {
 await browser.close();
 
 // ---------- assemble ----------
-const dsPkg = o.dsPkgPath ||
+const dsPkg = o.dsPkgPath || (process.env.DESIGNSTACK_PATH && resolve(process.env.DESIGNSTACK_PATH, 'package.json')) ||
   resolve(homedir(), 'projects/lcnc-workspace/frontend/packages/design-stack/package.json');
 const dsVersion = existsSync(dsPkg) ? JSON.parse(readFileSync(dsPkg, 'utf8')).version : 'unknown';
 

@@ -33,6 +33,12 @@ const dir = arg('--screens-dir') || join(SKILL, 'products', slug, 'app-shell', '
 if (!existsSync(dir)) { console.error(`no screens dir: ${dir} — capture screens first (see capture-multiscreen.md)`); process.exit(1); }
 const outArg = arg('--out');
 
+// PRODUCT-AGNOSTIC: the prune's chrome selectors come from THIS product's config (chrome.topbar /
+// chrome.sidebar the designer filled), plus DesignStack-generic patterns shared across BrowserStack
+// products. No product name is hardcoded — a designer's own product works from their own config.
+let cfgChrome = {};
+try { cfgChrome = (JSON.parse(readFileSync(join(SKILL, 'products', slug, 'product.config.json'), 'utf8')).chrome) || {}; } catch {}
+
 const screens = JSON.parse(readFileSync(join(dir, 'screens.json'), 'utf8'));
 // detail-route wiring is DATA-DRIVEN: any screen with "detailFor":"<section>" claims the
 // section's row-detail route (e.g. {slug:"test-editor",detailFor:"tests"} => /tests/<id> opens it).
@@ -99,9 +105,14 @@ writeFileSync(out, chrome, 'utf8');
 
 // prune chrome that leaked INTO panels (headless DOM pass) + re-serialize
 async function importPlaywright() {
+  // product-agnostic: PLAYWRIGHT_CORE env → local install → any npx cache. No hardcoded repo path.
+  if (process.env.PLAYWRIGHT_CORE) { try { return await import(pathToFileURL(process.env.PLAYWRIGHT_CORE).href); } catch {} }
   try { return await import('playwright-core'); } catch {}
-  for (const base of [process.cwd(), join(homedir(), 'projects/lcnc-workspace/frontend/packages/design-stack')]) {
+  const bases = [process.cwd()];
+  try { const npx = join(homedir(), '.npm/_npx'); for (const h of readdirSync(npx)) bases.push(join(npx, h, 'node_modules')); } catch {}
+  for (const base of bases) {
     try { const req = createRequire(join(base, 'package.json')); return await import(pathToFileURL(req.resolve('playwright-core')).href); } catch {}
+    try { const p = join(base, 'playwright-core', 'index.mjs'); if (existsSync(p)) return await import(pathToFileURL(p).href); } catch {}
   }
   return null;
 }
@@ -151,12 +162,15 @@ if (pw) {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const page = await browser.newPage();
   await page.goto(pathToFileURL(out).href, { waitUntil: 'load' });
-  const removed = await page.evaluate(() => {
+  // SEL = this product's chrome selectors (from product.config.json) + DesignStack-generic patterns
+  // that hold across BrowserStack products. Built in Node so it carries no hardcoded product name.
+  const SEL = [cfgChrome.topbar, cfgChrome.sidebar, 'nav.fixed', '[class*="inset-y-0"]', '[id*="sidenav"]', '[class*="left-0"][class*="z-300"]']
+    .filter(Boolean).join(', ');
+  const removed = await page.evaluate((SEL) => {
     // Prune only chrome that DUPLICATES the real chrome — never the product-nav sidebar, which
     // legitimately lives inside the content region (it shares `fixed inset-y-0` with the icon rail).
     // Fingerprint every chrome-ish element that sits OUTSIDE the panels (= genuine chrome); then
     // inside panels remove only elements whose fingerprint matches one of those.
-    const SEL = '#lcnc-bstack-header, nav.fixed, [class*="inset-y-0"], [id*="sidenav"], [class*="left-0"][class*="z-300"]';
     const key = (el) => (el.getAttribute('aria-label') || el.id || (el.className || '').toString().slice(0, 60)).trim();
     const chromeKeys = new Set();
     document.querySelectorAll(SEL).forEach((el) => { if (!el.closest('.ms-panel')) chromeKeys.add(key(el)); });
@@ -165,7 +179,7 @@ if (pw) {
       panel.querySelectorAll(SEL).forEach((el) => { if (chromeKeys.has(key(el))) { el.remove(); n++; } });
     });
     return n;
-  });
+  }, SEL);
   const html = '<!DOCTYPE html>' + await page.evaluate(() => document.documentElement.outerHTML);
   await browser.close();
   const inl = await inlineAssets(html);
