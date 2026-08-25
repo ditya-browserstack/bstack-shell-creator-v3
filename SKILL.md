@@ -1,5 +1,5 @@
 ---
-name: bstack-shell-creator-v2
+name: bstack-shell-creator-v3
 description: >-
   End-to-end design studio for any BrowserStack product: capture the real app shell, turn a task
   brief into high-fidelity explorations inside it, and keep that shell honest against production
@@ -10,7 +10,7 @@ user-invocable: true
 argument-hint: "<command> — setup | design <slug> <TB> | sync | check | new | publish | storyboard"
 ---
 
-# Bstack Shell Creator V2
+# Bstack Shell Creator V3
 
 One skill, two engines that hand off cleanly:
 

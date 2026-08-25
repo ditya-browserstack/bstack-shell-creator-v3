@@ -11,7 +11,7 @@ against `shell-sync.zip` (Python, stdlib-only, profile-per-product).
 
 ## Produce the exact handoff (one command + the config JSON)
 ```bash
-cd ~/.claude/skills/bstack-shell-creator-v2/design
+cd ~/.claude/skills/bstack-shell-creator-v3/design
 # 1. onboarding JSON in the exact shape `lib/onboard.py write` validates
 node scripts/shell-sync-onboard.mjs --slug <slug>   # → app-shell/shell-sync-onboard.json
 # 2. COMPLETE screen-map + screenshots + @dsCard gallery, in one command

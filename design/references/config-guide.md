@@ -37,7 +37,7 @@ top bar and sidebar to get their selectors. Fill `chrome.topbar` / `chrome.sideb
 ## Validate before continuing
 
 ```bash
-cd ~/.claude/skills/bstack-shell-creator-v2/design   # the installed skill's design/ folder
+cd ~/.claude/skills/bstack-shell-creator-v3/design   # the installed skill's design/ folder
 node -e "import('./lib/config.mjs').then(m=>{m.loadProductConfig('<slug>',{skillRoot:process.cwd()});console.log('config ok')})"
 ```
 

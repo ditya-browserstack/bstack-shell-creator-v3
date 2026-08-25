@@ -18,8 +18,8 @@ git push origin "$(git branch --show-current)" --tags
 echo "  pushed v$NEW — colleagues' next skill run will offer the update."
 
 # build the shareable bundle (excludes .git, user captures, and regenerable artifacts)
-BUNDLE=~/Desktop/bstack-shell-creator-v2.skill
-( cd .. && rm -f "$BUNDLE" && zip -r -0 -q "$BUNDLE" bstack-shell-creator-v2 \
+BUNDLE=~/Desktop/bstack-shell-creator-v3.skill
+( cd .. && rm -f "$BUNDLE" && zip -r -0 -q "$BUNDLE" bstack-shell-creator-v3 \
   -x '*/.git/*' -x '*.png' -x '*/shots/*' -x '*/cards/*' -x '*cards-gallery.html' \
   -x '*/self-check/*' -x '*/share/*' -x '*/node_modules/*' -x '*.DS_Store' -x '*/.last-update-check' )
 echo "  bundle -> $BUNDLE ($(du -h "$BUNDLE" | cut -f1))"
