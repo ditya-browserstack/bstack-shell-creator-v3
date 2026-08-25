@@ -48,8 +48,12 @@ const chromium = mod.chromium ?? mod.default?.chromium;
 const sys = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const browser = await chromium.launch(existsSync(sys) ? { executablePath: sys } : {});
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+// OFFLINE render: block every network request. A shared shell must be self-contained — Phase-A
+// audit found 128 images + the font silently depended on the network. Pass --online to skip.
+const OFFLINE = !process.argv.includes('--online');
+if (OFFLINE) await page.route('**/*', (r) => (r.request().url().startsWith('file://') || r.request().url().startsWith('data:')) ? r.continue() : r.abort());
 await page.goto(pathToFileURL(shell).href, { waitUntil: 'load' });
-await page.waitForTimeout(400);
+await page.waitForTimeout(1000);
 
 const results = [];
 for (const s of screens) {
@@ -66,7 +70,12 @@ for (const s of screens) {
     const hasSidebar = navRects.some((r) => r.left < 150 && r.height > 300 && r.width >= 110 && r.width <= 470);
     let contentRight = 0;
     if (panel) for (const el of panel.querySelectorAll('*')) { if (!vis(el)) continue; const r = el.getBoundingClientRect(); if (r.left > 250 && r.width > 120) contentRight = Math.max(contentRight, r.right); }
-    return { textLen: text.length, spinner, topbar, hasSidebar, contentRight: Math.round(contentRight) };
+    const imgs = panel ? [...panel.querySelectorAll('img')] : [];
+    const broken = imgs.filter((i) => i.complete && i.naturalWidth === 0);
+    const inp = panel ? [...panel.querySelectorAll('input,select,textarea')] : [];
+    return { textLen: text.length, spinner, topbar, hasSidebar, contentRight: Math.round(contentRight),
+      imgs: imgs.length, brokenImgs: broken.length, brokenSrcs: broken.slice(0, 3).map((i) => (i.getAttribute('src') || '').slice(0, 80)),
+      sig: { text: text.length, imgs: imgs.length, svgs: panel.querySelectorAll('svg').length, buttons: panel.querySelectorAll('button').length, links: panel.querySelectorAll('a[href]').length, inputs: inp.length } };
   }, { slug: s.slug, TOPBAR });
 
   const fails = [], warns = [];
@@ -74,12 +83,29 @@ for (const s of screens) {
   else if (checks.textLen < 160 && checks.spinner) fails.push('SPINNER (loading overlay only — did not render)');
   if (!checks.topbar) fails.push('NO_TOPBAR (chrome top bar missing)');
   if (!checks.hasSidebar) fails.push('NO_SIDEBAR (product-nav sidebar missing — likely pruned)');
+  if (checks.brokenImgs > 0) fails.push(`BROKEN_ASSETS (${checks.brokenImgs}/${checks.imgs} images fail offline — re-assemble with inlining; e.g. ${checks.brokenSrcs[0] || ''})`);
   if (checks.contentRight && checks.contentRight < 760) warns.push(`TRUNCATED (content only reaches x=${checks.contentRight} of 1440 — squished)`);
+  // signature diff vs the capture-time ground truth (screens/<slug>.sig.json) — catches MISSING
+  // ELEMENTS a structural gate can't see ("live had 48 svgs, shell has 41").
+  const sigPath = join(appShell, 'screens', `${s.slug}.sig.json`);
+  if (existsSync(sigPath)) {
+    try {
+      const ref = JSON.parse(readFileSync(sigPath, 'utf8'));
+      for (const k of ['svgs', 'buttons', 'links', 'inputs', 'imgs', 'text']) {
+        if (!(k in ref) || !ref[k]) continue;
+        const drop = (ref[k] - checks.sig[k]) / ref[k];
+        if (drop > 0.4) fails.push(`SIG_LOSS ${k}: captured ${ref[k]} → shell ${checks.sig[k]} (-${Math.round(drop * 100)}%)`);
+        else if (Math.abs(drop) > 0.15) warns.push(`SIG_DRIFT ${k}: ${ref[k]} → ${checks.sig[k]}`);
+      }
+    } catch { warns.push('SIG_UNREADABLE (bad .sig.json)'); }
+  }
 
   await page.screenshot({ path: join(shotDir, `${s.slug}.png`) });
   results.push({ slug: s.slug, label: s.label, fails, warns, checks });
 }
+const fontsLoaded = await page.evaluate(() => [...document.fonts].filter((f) => f.status === 'loaded').length);
 await browser.close();
+if (OFFLINE && fontsLoaded === 0) console.warn('  ▲ FONTS: 0 fonts loaded offline — the font is not inlined; text renders in a fallback face.');
 
 // ---- compare.html (prod | shell) if prod refs exist ----
 const havePairs = existsSync(prodDir) && readdirSync(prodDir).some((f) => f.endsWith('.png'));

@@ -105,6 +105,38 @@ async function importPlaywright() {
   }
   return null;
 }
+// ---- SELF-CONTAINMENT: inline remote images + fonts as data URIs ----
+// Phase-A audit: 128 imgs (browser icons, favicons) + the Inter font load from the network, so the
+// shell breaks offline — and the share-scrub used to rewrite CDN URLs, breaking them even online.
+// Inlining once (dedupe by URL, base64, size-capped) fixes both: data URIs carry no hostnames, so
+// neither offline viewing nor the scrub can break them. Skip with --no-inline.
+async function inlineAssets(html) {
+  if (process.argv.includes('--no-inline')) return { html, inlined: 0, skipped: 0, bytes: 0 };
+  const CAP = 400 * 1024; // per asset
+  const urls = new Set();
+  // img/src, source/srcset, and CSS url(...) in <style> blocks
+  for (const m of html.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)) urls.add(m[1]);
+  for (const m of html.matchAll(/srcset="([^"]+)"/g)) for (const c of m[1].split(',')) { const u = c.trim().split(/\s+/)[0]; if (/^https?:/.test(u)) urls.add(u); }
+  for (const m of html.matchAll(/url\((['"]?)(https?:\/\/[^)'"]+)\1\)/g)) urls.add(m[2]);
+  let inlined = 0, skipped = 0, bytes = 0;
+  for (const u of urls) {
+    if (!/\.(svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf)(\?|$)/i.test(u) && !/favicons\?/.test(u)) continue;
+    try {
+      const res = await fetch(u, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) { skipped++; continue; }
+      const ct = res.headers.get('content-type') || '';
+      if (!/^(image\/|font\/|application\/(font|octet-stream))/.test(ct) && !/\.(woff2?|ttf|svg)(\?|$)/i.test(u)) { skipped++; continue; }
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > CAP) { skipped++; continue; }
+      const mime = ct.split(';')[0] || (u.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
+      const dataUri = `data:${mime};base64,${buf.toString('base64')}`;
+      html = html.split(u).join(dataUri); // replaces src, srcset, and url() occurrences alike
+      inlined++; bytes += buf.length;
+    } catch { skipped++; }
+  }
+  return { html, inlined, skipped, bytes };
+}
+
 const pw = await importPlaywright();
 if (pw) {
   const chromium = pw.chromium ?? pw.default?.chromium;
@@ -135,10 +167,13 @@ if (pw) {
     return n;
   });
   const html = '<!DOCTYPE html>' + await page.evaluate(() => document.documentElement.outerHTML);
-  writeFileSync(out, html);
   await browser.close();
-  console.log(`assemble-multiscreen: ${screens.length} screens, pruned ${removed} leaked chrome node(s)`);
+  const inl = await inlineAssets(html);
+  writeFileSync(out, inl.html);
+  console.log(`assemble-multiscreen: ${screens.length} screens, pruned ${removed} leaked chrome node(s), inlined ${inl.inlined} asset(s) (${Math.round(inl.bytes / 1024)}KB${inl.skipped ? `, ${inl.skipped} skipped` : ''})`);
 } else {
-  console.log(`assemble-multiscreen: ${screens.length} screens (playwright unavailable — panels NOT pruned; run the prune manually)`);
+  const inl = await inlineAssets(chrome);
+  writeFileSync(out, inl.html);
+  console.log(`assemble-multiscreen: ${screens.length} screens (playwright unavailable — panels NOT pruned; run the prune manually); inlined ${inl.inlined} asset(s)`);
 }
 console.log('  wrote', out);

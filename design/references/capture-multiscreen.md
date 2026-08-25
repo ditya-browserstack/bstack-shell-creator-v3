@@ -67,8 +67,16 @@ tall element whose `left` is just past the sidebar.
 Run in the page — grabs the whole body with the content region replaced by an empty mount:
 ```js
 // reflect form state first (see capture-shell.md step 1), then:
-let css=''; for(const s of document.styleSheets){try{css+=[...s.cssRules].map(r=>r.cssText).join('\n')+'\n';}catch(e){}}
+let css=''; const blocked=[];
+for(const s of document.styleSheets){try{css+=[...s.cssRules].map(r=>r.cssText).join('\n')+'\n';}catch(e){ if(s.href) blocked.push(s.href); }}
+// CORS-blocked stylesheets are silently DROPPED by cssRules (Phase-A audit: 3 on LCA) — fetch their text:
+for(const href of blocked){ try{ css += await (await fetch(href)).text() + '\n'; }catch(e){} }
 const body=document.body.cloneNode(true);
+// ABSOLUTIZE every relative URL so nothing 404s on file:// (the assembler also inlines assets later):
+body.querySelectorAll('[src],[href],[srcset]').forEach(el=>{
+  for(const a of ['src','href']){ const v=el.getAttribute(a); if(v && !/^(https?:|data:|#|mailto:)/.test(v)) el.setAttribute(a, new URL(v, location.href).href); }
+  const ss=el.getAttribute('srcset'); if(ss) el.setAttribute('srcset', ss.split(',').map(c=>{const [u,d]=c.trim().split(/\s+/); return (/^(https?:|data:)/.test(u)?u:new URL(u,location.href).href)+(d?' '+d:'');}).join(', '));
+});
 const cc=body.querySelector('#app-main-content')||body.querySelector('#webapp-content');
 const mount=document.createElement('div'); mount.id='screen-mount'; if(cc) cc.replaceWith(mount);
 body.querySelectorAll('script,[data-headlessui-portal],#storybook-highlights-root').forEach(n=>n.remove());
@@ -96,6 +104,16 @@ outerHTML as-is (raw):
 ```js
 const src=document.querySelector('#app-main-content')||document.querySelector('#webapp-content');
 download('<slug>.html', src.outerHTML);   // RAW. All name/email/URL scrubbing runs at share-time.
+// SIGNATURE — the ground truth self-check diffs against. MUST be taken at capture time (live data
+// drifts within hours, so a later comparison would false-alarm):
+const inp=[...src.querySelectorAll('input,select,textarea')];
+download('<slug>.sig.json', JSON.stringify({
+  at:new Date().toISOString(), url:location.href,
+  text:src.innerText.replace(/\s+/g,' ').trim().length,
+  imgs:src.querySelectorAll('img').length, svgs:src.querySelectorAll('svg').length,
+  buttons:src.querySelectorAll('button').length, links:src.querySelectorAll('a[href]').length,
+  inputs:inp.length, inputsWithState:inp.filter(i=>i.value||i.checked||(i.tagName==='SELECT'&&i.selectedIndex>0)).length
+}));
 ```
 **While you're on each live screen, also take a full-page screenshot** and save it as
 `products/<slug>/app-shell/self-check/prod/<slug>.png`. The self-check (step 6) diffs the assembled

@@ -41,9 +41,14 @@ function scrub(html) {
     // "by <Name> on <date>"  (suites/builds-style markup). Allow internal capitals (AbdulQadir),
     // apostrophes/dots/hyphens, and 1–4 name tokens — compound names slipped a stricter pattern.
     .replace(/\bby\s+[A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3}\s+on\b/g, 'by Sample User on')
-    // customer URLs + bare hostnames -> example.com; keep browserstack/example/CDNs
-    .replace(/https?:\/\/(?!(?:[a-z0-9-]+\.)*(?:browserstack\.com|example\.com))[a-z0-9.-]+[^\s"'<>]*/gi, 'https://example.com')
-    .replace(/\b(?!(?:www\.)?(?:browserstack|example|w3|gstatic|googleapis|schema)\.)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi, 'example.com')
+    // customer URLs + bare hostnames -> example.com; keep browserstack/example AND asset CDNs
+    // (Phase-A audit bug: rewriting fonts.gstatic/google-favicon URLs broke fonts/images in the
+    // share build even online. Asset hosts are not customer data — exempt them.)
+    .replace(/https?:\/\/(?!(?:[a-z0-9-]+\.)*(?:browserstack\.com|example\.com|gstatic\.com|googleapis\.com|google\.com))[a-z0-9.-]+[^\s"'<>]*/gi, 'https://example.com')
+    // bare hostnames: exempt any SUBDOMAIN of the safe suffixes too — the old (?:www\.)? lookahead
+    // let this rule clobber static-assets.browserstack.com to example.com, breaking asset URLs the
+    // full-URL rule had deliberately kept (found via "12 skipped" in the asset inliner).
+    .replace(/\b(?!(?:[a-z0-9-]+\.)*(?:browserstack|example|w3|gstatic|googleapis|google|schema)\.(?:com|co|io|net|org|in|dev|app|ai)\b)([a-z0-9-]+(?:\.[a-z0-9-]+){1,3}\.(?:com|co|io|net|org|in|dev|app|ai))\b/gi, 'example.com')
     // standalone emails (real on config pages as VALUES) -> fake; keep already-safe example.*
     .replace(/[a-zA-Z0-9._%+-]+@(?!example\.(?:com|org|net))[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, 'user@example.com')
     // BrowserStack usernames in "created by" columns (firstlast_XXXXXX) -> fake
