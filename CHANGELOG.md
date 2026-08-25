@@ -1,4 +1,4 @@
-# Changelog — bstack-design-studio
+# Changelog — bstack-shell-creator-v2
 
 Newest first. The first line under each version is shown in the update prompt, so keep it a clear one-liner.
 

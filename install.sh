@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Install or UPDATE bstack-design-studio into ~/.claude/skills/.
+# Install or UPDATE bstack-shell-creator-v2 into ~/.claude/skills/.
 # Prefers git (so future updates are a fast git pull); falls back to unzipping a .skill bundle.
 set -euo pipefail
-DEST="$HOME/.claude/skills/bstack-design-studio"
+DEST="$HOME/.claude/skills/bstack-shell-creator-v2"
 REPO="${BSTACK_SKILL_REPO:-}"   # set to the git URL, or run from an unpacked bundle
 
 mkdir -p "$HOME/.claude/skills"
@@ -22,4 +22,4 @@ fi
 
 # one-time deps for the weekly-sync half
 [ -f "$DEST/sync/install.sh" ] && bash "$DEST/sync/install.sh" || true
-echo "done. Restart Claude Code; the skill is 'bstack-design-studio'. Updates are offered automatically on use."
+echo "done. Restart Claude Code; the skill is 'bstack-shell-creator-v2'. Updates are offered automatically on use."
