@@ -37,6 +37,7 @@ Reference files are read **when you reach that step, not upfront.**
 | SETUP: ASK which source (live / localhost / repo) — do first | `references/capture-sources.md` |
 | SETUP: capture the real shell (primary) | `references/capture-shell.md` |
 | SETUP: capture ALL major pages (multi-screen, RAW) | `references/capture-multiscreen.md` |
+| SETUP: capture STATE-GATED screens (modals/loaders/recorder) | `references/capture-states.md` |
 | CHECK: fidelity self-check before sharing (gate) | run `scripts/self-check.mjs --slug <slug>` |
 | SHARE: scrub the raw shell for sharing (hard gate) | run `scripts/scrub-for-share.mjs --slug <slug>` |
 | SETUP: reconstruct shell if no live app (fallback) | `references/capture-app.md` |

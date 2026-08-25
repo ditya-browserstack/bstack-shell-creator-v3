@@ -57,6 +57,11 @@ Build the **complete** screen list from this, not from a remembered subset.
 Capture at least the highest-value ones — a shell with list pages but no detail pages can't show a
 reviewer what "opening a thing" looks like.
 
+**And the state-gated surfaces** — modals, drawers, loaders, the recorder setup, a selected-row
+detail panel. These aren't routes; they only exist after an interaction, so a plain snapshot misses
+them. Mark them `"type":"state-gated"` in `screens.json` and capture via `references/capture-states.md`
+(reach the state → freeze it → snapshot the overlay). The recorder's setup slide-over is one of these.
+
 ## 2. Find the content-wrapper selector (per product, once)
 The region that changes per screen. **Gotcha (real on LCA): its id can vary per route**
 (`#webapp-content` on one screen, `#app-main-content` on another). Use a fallback:

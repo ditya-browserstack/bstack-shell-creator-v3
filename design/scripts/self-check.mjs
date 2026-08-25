@@ -79,12 +79,15 @@ for (const s of screens) {
   }, { slug: s.slug, TOPBAR });
 
   const fails = [], warns = [];
+  const stateGated = s.type === 'state-gated'; // a modal/overlay legitimately COVERS the chrome
   if (checks.textLen < 40) fails.push('BLANK (panel has almost no text — 404/empty)');
-  else if (checks.textLen < 160 && checks.spinner) fails.push('SPINNER (loading overlay only — did not render)');
-  if (!checks.topbar) fails.push('NO_TOPBAR (chrome top bar missing)');
-  if (!checks.hasSidebar) fails.push('NO_SIDEBAR (product-nav sidebar missing — likely pruned)');
+  else if (checks.textLen < 160 && checks.spinner && !stateGated) fails.push('SPINNER (loading overlay only — did not render)');
+  if (!stateGated) {
+    if (!checks.topbar) fails.push('NO_TOPBAR (chrome top bar missing)');
+    if (!checks.hasSidebar) fails.push('NO_SIDEBAR (product-nav sidebar missing — likely pruned)');
+    if (checks.contentRight && checks.contentRight < 760) warns.push(`TRUNCATED (content only reaches x=${checks.contentRight} of 1440 — squished)`);
+  }
   if (checks.brokenImgs > 0) fails.push(`BROKEN_ASSETS (${checks.brokenImgs}/${checks.imgs} images fail offline — re-assemble with inlining; e.g. ${checks.brokenSrcs[0] || ''})`);
-  if (checks.contentRight && checks.contentRight < 760) warns.push(`TRUNCATED (content only reaches x=${checks.contentRight} of 1440 — squished)`);
   // signature diff vs the capture-time ground truth (screens/<slug>.sig.json) — catches MISSING
   // ELEMENTS a structural gate can't see ("live had 48 svgs, shell has 41").
   const sigPath = join(appShell, 'screens', `${s.slug}.sig.json`);
