@@ -22,6 +22,13 @@ One skill, two engines that hand off cleanly:
 `ATTRIBUTION.md` — `sync/` is Harsh Kothari's **shell-sync**, forked verbatim; `design/` is
 `bs-design-from-tb`. See it before editing `sync/`.
 
+## Step 0 — check for updates (run first, every invocation)
+Before routing, run `node design/scripts/check-update.mjs` (git-based, throttled to once/24h, fails
+silent — it never blocks you). If it prints an `UPDATE_AVAILABLE` line, tell the designer in one
+sentence (version + the changelog headline) and **offer to update**: on yes, run the `UPDATE_CMD` it
+printed (`git -C <root> pull --ff-only`) and ask them to re-invoke the skill; on no, continue. Their
+captures in `products/` are gitignored, so an update never touches their work.
+
 ## Command router
 
 | The designer says | You run | Engine |

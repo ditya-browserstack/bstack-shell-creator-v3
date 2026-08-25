@@ -14,3 +14,4 @@ design/products/*/app-shell/multiscreen-shell.html
 
 # self-check artifacts (screenshots + prod refs — regenerable, may hold real data)
 design/products/*/app-shell/self-check/
+.last-update-check
