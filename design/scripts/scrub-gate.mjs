@@ -18,7 +18,12 @@ const extraAllow = allowIdx !== -1 && argv[allowIdx + 1] ? argv[allowIdx + 1].sp
 
 // asset/namespace hosts that are never customer data (kills obvious noise)
 const ALLOW_HOSTS = ['example.com', 'example.org', 'example.net', 'localhost',
-  'w3.org', 'fonts.gstatic.com', 'fonts.googleapis.com', 'schema.org', ...extraAllow];
+  'w3.org', 'fonts.gstatic.com', 'fonts.googleapis.com', 'schema.org',
+  // asset/stock-photo CDNs — never customer data (stock avatars in the DesignStack core sheet,
+  // product asset hosts). Their query strings look like data paths, so exempt them explicitly.
+  // first-party BrowserStack (any subdomain) + stock-photo CDN are never customer data. The scrub
+  // already PRESERVES browserstack.com URLs, so the gate must agree or it flags first-party links.
+  'images.unsplash.com', 'browserstack.com', ...extraAllow];
 const ALLOW_EMAIL = /@(example\.(com|org|net))$/i;
 // a URL path that looks like it carries a specific entity: encoded spaces, or a 4+ digit id
 const DATA_PATH = /[?/][^\s"'<>]*(\+|%20|%2B|\d{4,})/;

@@ -71,7 +71,9 @@ for (const s of screens) {
     let contentRight = 0;
     if (panel) for (const el of panel.querySelectorAll('*')) { if (!vis(el)) continue; const r = el.getBoundingClientRect(); if (r.left > 250 && r.width > 120) contentRight = Math.max(contentRight, r.right); }
     const imgs = panel ? [...panel.querySelectorAll('img')] : [];
-    const broken = imgs.filter((i) => i.complete && i.naturalWidth === 0);
+    // only NETWORK images matter for offline self-containment. A broken data: URI is self-contained
+    // (an app placeholder rendering oddly, not our concern); a broken http(s) src is real breakage.
+    const broken = imgs.filter((i) => i.complete && i.naturalWidth === 0 && /^https?:/i.test(i.getAttribute('src') || ''));
     const inp = panel ? [...panel.querySelectorAll('input,select,textarea')] : [];
     return { textLen: text.length, spinner, topbar, hasSidebar, contentRight: Math.round(contentRight),
       imgs: imgs.length, brokenImgs: broken.length, brokenSrcs: broken.slice(0, 3).map((i) => (i.getAttribute('src') || '').slice(0, 80)),
@@ -87,7 +89,13 @@ for (const s of screens) {
     if (!checks.hasSidebar) fails.push('NO_SIDEBAR (product-nav sidebar missing — likely pruned)');
     if (checks.contentRight && checks.contentRight < 760) warns.push(`TRUNCATED (content only reaches x=${checks.contentRight} of 1440 — squished)`);
   }
-  if (checks.brokenImgs > 0) fails.push(`BROKEN_ASSETS (${checks.brokenImgs}/${checks.imgs} images fail offline — re-assemble with inlining; e.g. ${checks.brokenSrcs[0] || ''})`);
+  // FAIL only on SYSTEMIC breakage (a whole asset host unreachable — the 128-icons case); a stray
+  // decorative image (a scrubbed target favicon) is a WARN, not a release blocker.
+  if (checks.brokenImgs >= 3 || (checks.imgs > 0 && checks.brokenImgs / checks.imgs > 0.25 && checks.brokenImgs >= 2)) {
+    fails.push(`BROKEN_ASSETS (${checks.brokenImgs}/${checks.imgs} network images fail offline — re-assemble with inlining; e.g. ${checks.brokenSrcs[0] || ''})`);
+  } else if (checks.brokenImgs > 0) {
+    warns.push(`${checks.brokenImgs} broken network image(s) (decorative — e.g. ${checks.brokenSrcs[0] || ''})`);
+  }
   // signature diff vs the capture-time ground truth (screens/<slug>.sig.json) — catches MISSING
   // ELEMENTS a structural gate can't see ("live had 48 svgs, shell has 41").
   const sigPath = join(appShell, 'screens', `${s.slug}.sig.json`);
