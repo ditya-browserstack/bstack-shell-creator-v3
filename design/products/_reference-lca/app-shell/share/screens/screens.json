@@ -1,8 +1,0 @@
-[
-  { "slug": "tests",       "label": "Tests" },
-  { "slug": "suites",      "label": "Test suites" },
-  { "slug": "builds",      "label": "Builds" },
-  { "slug": "modules",     "label": "Modules" },
-  { "slug": "settings",    "label": "Settings" },
-  { "slug": "test-editor", "label": "Test editor", "detailFor": "tests" }
-]

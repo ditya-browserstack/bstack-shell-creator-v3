@@ -1,30 +1,13 @@
-# Onboard a new product (Task 6 quickstart)
+# `_example` — placeholder product
 
-This `_example` folder is a template, not a real product. To onboard a product:
+This folder shows the **shape** of a product entry. A real product lives at
+`design/products/<your-slug>/` and is created during SETUP:
 
-1. Copy this folder to a real slug:
+1. Fill `product.config.json` for your product (name, `liveUrl`, and the `chrome.*` selectors you find
+   by inspecting your own live app). The values here are generic examples, not a real product.
+2. Run SETUP (`references/setup.md`) — it asks your source (live / localhost / repo), captures your
+   screens into `app-shell/`, self-checks fidelity, and scrubs before sharing.
 
-   ```bash
-   cd ~/projects/lcnc-workspace/lcnc-backend/workspace/skills/bs-design-from-tb
-   cp -R products/_example products/appauto      # pick your slug
-   rm products/appauto/README.md
-   ```
-
-2. Edit `products/appauto/product.config.json` — fill the `REPLACE-…` fields
-   (`repoPath`, `liveUrl`, `chrome.activeNav`, `vocabulary`). See `references/config-guide.md`.
-
-3. Validate:
-
-   ```bash
-   node -e "import('./lib/config.mjs').then(m=>{m.loadProductConfig('appauto',{skillRoot:process.cwd()});console.log('config ok')})"
-   ```
-
-4. Run SETUP: follow `references/setup.md` end to end. It produces
-   `products/appauto/app-shell/{component-sheet.html,component-sheet.css,shell-scaffold.html,sheet-manifest.json}`.
-
-5. Open the sheet + scaffold in Chrome and verify (a green "captured" ≠ the right capture).
-
-6. Run USE: give the skill a real TB for that product → 1–3 explorations via `/design`.
-
-Requirements you must have on hand: the product's **local repo path** and a **reachable, logged-in
-live URL**. Those are the only things this template can't fill for you.
+> **Note:** the fully-worked internal reference (a real BrowserStack product's captured shell) is **not
+> shipped in this public repo** — it would expose internal product UI. Ask the maintainer for the
+> `.skill` bundle if you want to see a complete, populated example.

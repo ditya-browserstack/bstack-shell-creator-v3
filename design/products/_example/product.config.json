@@ -1,9 +1,14 @@
 {
-  "product": "App Automate",
+  "product": "Example Product",
   "designSystem": "designstack",
-  "repoPath": "~/projects/REPLACE-with-local-repo-path",
+  "repoPath": "~/projects/myproduct-frontend",
   "storybookUrl": "http://localhost:6006",
-  "liveUrl": "https://REPLACE-with-a-reachable-running-url",
-  "chrome": { "topbar": "", "sidebar": "", "activeNav": "REPLACE-with-active-nav-label" },
-  "vocabulary": ["REPLACE", "with", "product", "nouns"]
+  "liveUrl": "https://app.example.com/dashboard",
+  "chrome": {
+    "topbar": ".topbar",
+    "sidebar": "nav.sidebar",
+    "activeNav": "Home",
+    "contentSlot": ".main-content"
+  },
+  "vocabulary": ["item", "record", "run"]
 }
