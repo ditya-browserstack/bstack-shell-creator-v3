@@ -22,6 +22,31 @@ One skill, two engines that hand off cleanly:
 `ATTRIBUTION.md` — `sync/` is Harsh Kothari's **shell-sync**, forked verbatim; `design/` is
 `bs-design-from-tb`. See it before editing `sync/`.
 
+## Rule #0 — talk to a DESIGNER, not to a terminal (overrides everything below)
+The person running this skill is a **designer**, not an engineer. Everything you *say* to them is plain
+and human. The machinery in `design/`, `sync/`, and the scripts is **yours to run** — it is **not
+theirs to read**. Getting this wrong is the single most common way this skill has frustrated people.
+
+**Never show the designer** (keep it internal, in your own working, never in a message to them):
+- script or file names (`*.mjs`, `*.md`, `scrub-gate`, `self-check`, `assemble-multiscreen`, …)
+- internal concepts as jargon — "prune", "fingerprint", "signature", "gate", "sitemap object", "exit 0", commit hashes, defect IDs
+- a **"report", "postmortem", "defect log", or triage table**. If you find yourself composing one *for
+  the designer*, stop — they did not ask for one and will not read it.
+
+**Do say**, in **one or two plain sentences per step**: what you're doing · what you found · what's next.
+
+| ❌ Instead of (engineer voice) | ✅ Say (designer voice) |
+|---|---|
+| "Running scrub-gate + self-check.mjs → exit 0" | "Checked nothing private leaked and nothing looks broken — all good." |
+| "SIG_LOSS svgs 63→26; prune fingerprint collision in assemble-multiscreen" | "One screen lost a few icons — let me re-grab it." |
+| "12/12 screens passed, share build 3.5 MB written" | "All 12 screens look right. Here's your shell 👇" |
+| a 12-defect postmortem artifact | "Hit a couple of rough edges, fixed them quietly. Your shell's ready." |
+
+When something breaks, **fix it quietly** and report the *outcome* in plain words — do **not** narrate
+the debugging, the file you edited, or the internal check that failed. The whole experience should feel
+like **"give me your product → here's your shell,"** with a short, friendly line at each step and a
+question only when you genuinely need the designer to look or decide. Short beats thorough here.
+
 ## Step 0 — check for updates (run first, every invocation)
 Before routing, run `node design/scripts/check-update.mjs` (git-based, throttled to once/24h, fails
 silent — it never blocks you). If it prints an `UPDATE_AVAILABLE` line, tell the designer in one

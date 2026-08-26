@@ -2,6 +2,9 @@
 
 Newest first. The first line under each version is shown in the update prompt, so keep it a clear one-liner.
 
+## 3.1.1
+Talks to designers in plain language now. Rule #0: no file names, script/gate jargon, exit codes, or defect reports shown to the designer — one or two plain sentences per step, breakages fixed quietly and reported as outcomes. Fixes the "wall of jargon / it generated a postmortem" experience.
+
 ## 3.1.0
 Product-agnostic: no LCA hardcoded in the scripts. The assembler's chrome-prune now reads THIS product's `chrome.topbar`/`chrome.sidebar` from its `product.config.json` (plus DesignStack-generic patterns), and Playwright resolves via `PLAYWRIGHT_CORE` env / npx cache / cwd instead of an LCA path. Any designer's own BrowserStack product works from their own config. Verified: LCA reference stays fully green under the config-driven prune.
 

@@ -12,6 +12,10 @@ argument-hint: "<product-slug> <TB file path, Confluence link, or pasted brief>"
 
 # BrowserStack Design from TB
 
+> **Rule #0 (from the top-level SKILL.md): talk to a DESIGNER, not a terminal.** One or two plain
+> sentences per step; never show file names, script/gate names, jargon (prune, fingerprint,
+> signature…), exit codes, or a defect report. Fix breakages quietly; report outcomes in plain words.
+
 Two modes. USE is the everyday path; SETUP is run once per product.
 
 | Mode | When | Reference |
